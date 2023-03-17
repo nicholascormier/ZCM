@@ -27,12 +27,8 @@ contract Shared is Test {
         beacon = new Beacon();
         beacon_implementation = new BeaconImplementation();
         controller = new Controller();
-        _setBeaconImplementation(address(beacon));
+        beacon_implementation.setBeacon(address(beacon));
         vm.stopPrank();
-    }
-
-    function _setBeaconImplementation(address _impl) internal {
-        beacon_implementation.setBeacon(_impl);
     }
 
 }
