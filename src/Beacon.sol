@@ -23,5 +23,6 @@ contract Beacon is Ownable{
     function getImplementation() external view returns(address) {
         return implementationAddress;
     }
+
 }
 

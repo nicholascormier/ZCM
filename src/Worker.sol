@@ -19,24 +19,12 @@ contract Worker {
         _;
     }
     
-    // modifier newOnlyOwner {
-    //     (bool success, bytes memory data) = address(_beacon).delegatecall(abi.encodeWithSignature("getFactoryAddress()"));
-    //     address factoryAddress = abi.decode(data, (address));
-    //     require(factoryAddress == msg.sender, "UNAUTHORIZED.");
-    //     _;
-    // }
-
     function getOwner() external returns(address) {
         // REPLACE _beacon WITH DEPLOYED BEACON
         return IBeacon(_beacon).getFactoryAddress();
     }
 
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {
-        (bool success,) = _target.call{value: _value}(_data);
-        return success;
-    }
-
-    function _call(address _target, bytes calldata _data, uint256 _value) internal onlyOwner returns (bool) {
         (bool success,) = _target.call{value: _value}(_data);
         return success;
     }
@@ -65,4 +53,5 @@ contract Worker {
     function setBeacon(address beacon) external {
         _beacon = beacon;
     }
+
 }
