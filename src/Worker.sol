@@ -5,7 +5,7 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
 interface IBeacon {
     function getImplementation() external view returns(address);
-    function getFactoryAddress() external view returns(address);
+    function getControllerAddress() external view returns(address);
 }
 
 // Deployed by us, serves as template for proxies
@@ -15,13 +15,13 @@ contract Worker {
 
     modifier onlyOwner{
         // REPLACE _beacon WITH DEPLOYED BEACON
-        require(IBeacon(_beacon).getFactoryAddress() == msg.sender, "Not owner");
+        require(IBeacon(_beacon).getControllerAddress() == msg.sender, "Not owner");
         _;
     }
     
     function getOwner() external returns(address) {
         // REPLACE _beacon WITH DEPLOYED BEACON
-        return IBeacon(_beacon).getFactoryAddress();
+        return IBeacon(_beacon).getControllerAddress();
     }
 
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {

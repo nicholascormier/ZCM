@@ -45,7 +45,23 @@ contract TestSuite is Test, Shared {
     }
 
     function testControllerUpgrade() external {
+        ImplOne cOne = new ImplOne();
+        ImplTwo cTwo = new ImplTwo();
 
+        vm.prank(zenith_deployer);
+        beacon.updateController(address(cOne));
+        assertTrue(beacon.getControllerAddress() == address(cOne));
+
+        cOne.workerTest(address(beacon_implementation));
+
+        vm.prank(zenith_deployer);
+        beacon.updateController(address(cTwo));
+        assertTrue(beacon.getControllerAddress() == address(cTwo));
+
+        cTwo.workerTest(address(beacon_implementation));
+
+        vm.expectRevert();
+        cOne.workerTest(address(beacon_implementation));
     }
 
 }
