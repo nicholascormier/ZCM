@@ -21,66 +21,71 @@ import "./Shared.sol";
 
 contract ControllerTest is Test, Shared {
 
-    Controller controller_logic;
+    Controller controller_logic = new Controller();
 
     ProxyController controller_proxy;
     ProxyAdmin controller_admin;
 
     address test_user = vm.addr(3493847394);
 
+    ProxyTester proxy = new ProxyTester();
+    address proxy_address;
+    address admin;
+
     function setUp() external {
         _devDeployBase();
-        // setup proxy contracts
-        _configureControllerProxy();
-
-        _authorizeUser(test_user);
+        _deployProxySetup();
     }
 
-    function testFailUnauthorizedController() external {
-        (bool success, ) = address(controller_proxy).call(abi.encodeWithSignature("createWorkers(uint256)", 1));
-    }
-
-    function _authorizeUser(address _user) internal {
+    function _deployProxySetup() internal {
         vm.startPrank(zenith_deployer);
-        (bool success, bytes memory data) = address(controller_proxy).call(abi.encodeWithSignature("authorizeCaller(address)", _user));
+        admin = vm.addr(69);
+
+        proxy.setType("uups");
+        proxy_address = proxy.deploy(address(controller_logic), admin);
+
+        bytes32 implSlot = bytes32(
+            uint256(keccak256("eip1967.proxy.implementation")) - 1
+        );
+        bytes32 proxySlot = vm.load(proxy_address, implSlot);
+        address addr;
+        assembly {
+            mstore(0, proxySlot)
+            addr := mload(0)
+        }
+        assertEq(address(controller_logic), addr);
+        (bool success, bytes memory data) = address(proxy_address).call(abi.encodeWithSignature("initialize()"));
+        vm.stopPrank();
+    }
+
+    function testUpgradeProxy() public {
+        vm.prank(zenith_deployer);
+        Controller newImpl = new Controller();
+        proxy.upgrade(address(newImpl), admin, address(0));
+        bytes32 implSlot = bytes32(
+            uint256(keccak256("eip1967.proxy.implementation")) - 1
+        );
+        bytes32 proxySlot = vm.load(proxy_address, implSlot);
+        address addr;
+        assembly {
+            mstore(0, proxySlot)
+            addr := mload(0)
+        }
+        assertEq(address(newImpl), addr);
+    }
+
+    function testAuthorizeUser() external {
+        vm.startPrank(zenith_deployer);
+        (bool success, bytes memory data) = address(proxy_address).call(abi.encodeWithSignature("authorizeCaller(address)", test_user));
         assertTrue(success);
         vm.stopPrank();
     }
 
-    function _configureControllerProxy() internal {
-        vm.startPrank(zenith_deployer);
-        controller_logic = new Controller();
-
-        assertTrue(controller_logic.owner() != zenith_deployer);
-
-        ProxyAdmin admin = new ProxyAdmin();
-        ProxyController proxy = new ProxyController(address(controller_logic), address(admin));
-
-        controller_proxy = proxy;
-        controller_admin = admin;
-
-        vm.stopPrank();
-    }
-
-    function _implementationTest(address _impl) internal {
-        vm.startPrank(zenith_deployer);
-        (bool success, bytes memory data) = address(controller_proxy).call(abi.encodeWithSignature("implementation()"));
-        assertTrue(success);
-        (address _implementation) = abi.decode(data, (address));
-        assertTrue(_impl == _implementation);
-        vm.stopPrank();
-    }
-
-    function testInitialImplementation() external {
-        _implementationTest(address(controller_logic));
-    }
-
-    function testUpdateImplementation() external {
-        vm.startPrank(zenith_deployer);
-        (bool success, bytes memory data) = address(controller_proxy).call(abi.encodeWithSignature("upgradeTo(address)"));
+    function testFailAuthorizeUser() external {
+        vm.startPrank(vm.addr(382938473));
+        (bool success, bytes memory data) = address(proxy_address).call(abi.encodeWithSignature("authorizeCaller(address)", test_user));
         assertTrue(success);
         vm.stopPrank();
-        _implementationTest(address(controller_logic));
     }
 
 }
