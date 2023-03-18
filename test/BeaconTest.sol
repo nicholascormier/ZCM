@@ -18,7 +18,7 @@ import "./Shared.sol";
 contract BeaconTest is Test, Shared {
 
     function setUp() external {
-        _devDeploy();
+        _devDeployBase();
     }
 
     function testBeaconUpdate() external {

@@ -9,26 +9,18 @@ import "../src/Controller.sol";
 import "../src/Worker.sol";
 
 // composable shared test setup
-contract Shared is Test {
+abstract contract Shared is Test {
 
     address zenith_deployer = vm.addr(3902934);
-
     Beacon beacon;
-
     BeaconImplementation beacon_implementation;
-
-    Controller controller;
-
     Worker worker_implementation;
 
-    // deploys dev contracts and configures production env.
-    function _devDeploy() internal {
+    // configures on-chain dependencies.
+    function _devDeployBase() internal {
         vm.startPrank(zenith_deployer);
         beacon = new Beacon();
         beacon_implementation = new BeaconImplementation();
-        controller = new Controller();
-        controller.setBeacon(address(beacon));
-        controller.setWorkerTemplate(address(beacon_implementation));
         beacon_implementation.setBeacon(address(beacon));
         worker_implementation = new Worker();
         beacon.updateImplementation(address(worker_implementation));
