@@ -9,12 +9,13 @@ import "../src/Controller.sol";
 import "../src/Worker.sol";
 
 import "./samples/Mock721.sol";
-import "./samples/TestImplementationOne.sol";
-import "./samples/TestImplementationTwo.sol";
+import "./samples/Mock1155.sol";
+import "./samples/MockImplementationOne.sol";
+import "./samples/MockImplementationTwo.sol";
 
 import "./Shared.sol";
 
-contract TestSuite is Test, Shared {
+contract BeaconTest is Test, Shared {
 
     function setUp() external {
         _devDeploy();

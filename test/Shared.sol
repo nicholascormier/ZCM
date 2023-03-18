@@ -27,6 +27,8 @@ contract Shared is Test {
         beacon = new Beacon();
         beacon_implementation = new BeaconImplementation();
         controller = new Controller();
+        controller.setBeacon(address(beacon));
+        controller.setWorkerTemplate(address(beacon_implementation));
         beacon_implementation.setBeacon(address(beacon));
         worker_implementation = new Worker();
         beacon.updateImplementation(address(worker_implementation));

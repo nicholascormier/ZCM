@@ -11,6 +11,8 @@ interface IWorker {
     function setBeacon(address beacon) external;
 }
 
+import "../lib/forge-std/src/Test.sol";
+
 // Deployed by us
 contract Controller is Initializable, OwnableUpgradeable {
 
