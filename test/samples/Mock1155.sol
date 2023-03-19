@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "../../lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol";
 
-contract NFT1155 is ERC1155 {
+contract Mock1155 is ERC1155 {
     constructor() ERC1155("") {}
 
     uint256 id;

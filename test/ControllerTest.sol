@@ -154,26 +154,20 @@ contract ControllerTest is Test, Shared {
 
     uint256[] ww = [1];
     function testWorkerAccessRevoked() external {
-
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
-        vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(1);
-        Controller(proxy_address).withdrawFromWorkers(ww);
-        vm.stopPrank();
-
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).deauthorizeCaller(test_user);
-
-        vm.expectRevert();
-
-        vm.prank(test_user);
-        Controller(proxy_address).withdrawFromWorkers(ww);
-
+        _workerAccess();
     }
 
     function testWorkerAccessReinstated() external {
+        _workerAccess();
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).withdrawFromWorkers(ww);
+    }
+
+    // saves some lines.
+    function _workerAccess() internal {
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
 
@@ -189,12 +183,22 @@ contract ControllerTest is Test, Shared {
 
         vm.prank(test_user);
         Controller(proxy_address).withdrawFromWorkers(ww);
+    }
 
+    function test721Mint() external {
+        Mock721 NFT = new Mock721();
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
 
-        vm.prank(test_user);
-        Controller(proxy_address).withdrawFromWorkers(ww);
+        vm.startPrank(test_user);
+        Controller(proxy_address).createWorkers(1);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 1, false, 0);
+        vm.stopPrank();
+        
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+
+        NFT.supply();
+        assertTrue(NFT.balanceOf(workers[1]) == 1);
     }
 
 }
