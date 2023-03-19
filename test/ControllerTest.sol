@@ -33,6 +33,7 @@ contract ControllerTest is Test, Shared {
     address admin;
 
     function setUp() external {
+        // shared
         _devDeployBase();
         _deployProxySetup();
     }
@@ -53,11 +54,18 @@ contract ControllerTest is Test, Shared {
             mstore(0, proxySlot)
             addr := mload(0)
         }
+
         assertEq(address(controller_logic), addr);
-        (bool success, bytes memory data) = address(proxy_address).call(abi.encodeWithSignature("initialize()"));
+
+        Controller(proxy_address).initialize();
+        Controller(proxy_address).setBeacon(address(beacon));
+        Controller(proxy_address).setWorkerTemplate(address(beacon_implementation));
+        beacon.updateController(proxy_address);
+
         vm.stopPrank();
     }
 
+    // this is not really testing anything :)
     function testUpgradeProxy() public {
         vm.prank(zenith_deployer);
         Controller newImpl = new Controller();
@@ -75,17 +83,118 @@ contract ControllerTest is Test, Shared {
     }
 
     function testAuthorizeUser() external {
-        vm.startPrank(zenith_deployer);
-        (bool success, bytes memory data) = address(proxy_address).call(abi.encodeWithSignature("authorizeCaller(address)", test_user));
-        assertTrue(success);
-        vm.stopPrank();
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).createWorkers(1);
     }
 
-    function testFailAuthorizeUser() external {
-        vm.startPrank(vm.addr(382938473));
-        (bool success, bytes memory data) = address(proxy_address).call(abi.encodeWithSignature("authorizeCaller(address)", test_user));
-        assertTrue(success);
+    function testDeauthorizeUser() external {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).createWorkers(1);
+
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).deauthorizeCaller(test_user);
+
+        vm.expectRevert();
+        vm.prank(test_user);
+        Controller(proxy_address).createWorkers(1);
+    }
+
+    function testUnauthorizedCaller() external {
+        vm.expectRevert();
+        Controller(proxy_address).createWorkers(1);
+    }
+
+    function testAuthorizedCaller() external {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).createWorkers(1);
+    }
+
+    function testWorkerCreation() external {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).createWorkers(1);
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        assertTrue(workers.length == 2);
+        assertTrue(workers[0] == test_user);
+    }
+
+    function testWorkerForwarding() external {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).createWorkers(1);
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+
+        address response = Worker(workers[1]).getBasicResponse();
+        assertTrue(response == workers[1]);
+    }
+
+    function testWorkerDirectAccess() external {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).createWorkers(1);
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        vm.expectRevert();
+        Worker(workers[1]).getBasicResponseProtected();
+    }
+
+    uint256[] ww = [1];
+    function testWorkerAccessRevoked() external {
+
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.startPrank(test_user);
+        Controller(proxy_address).createWorkers(1);
+        Controller(proxy_address).withdrawFromWorkers(ww);
         vm.stopPrank();
+
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).deauthorizeCaller(test_user);
+
+        vm.expectRevert();
+
+        vm.prank(test_user);
+        Controller(proxy_address).withdrawFromWorkers(ww);
+
+    }
+
+    function testWorkerAccessReinstated() external {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.startPrank(test_user);
+        Controller(proxy_address).createWorkers(1);
+        Controller(proxy_address).withdrawFromWorkers(ww);
+        vm.stopPrank();
+
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).deauthorizeCaller(test_user);
+
+        vm.expectRevert();
+
+        vm.prank(test_user);
+        Controller(proxy_address).withdrawFromWorkers(ww);
+
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.prank(test_user);
+        Controller(proxy_address).withdrawFromWorkers(ww);
     }
 
 }

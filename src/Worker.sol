@@ -49,6 +49,10 @@ contract Worker {
         return address(this);
     }
 
+    function getBasicResponseProtected() external view onlyOwner returns(address) {
+        return address(this);
+    }
+
     // THIS IS FOR TESTING ONLY - DO NOT DEPLOY THIS FUNCTION
     function setBeacon(address beacon) external {
         _beacon = beacon;

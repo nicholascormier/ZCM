@@ -53,6 +53,7 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     function deauthorizeCaller(address _user) external onlyOwner {
         // Set the user's first index to zero so if they are re-added their contracts still exist
+        require(workers[_user].length > 0, "User does not exist");
         workers[_user][0] = address(0);
     }
 
@@ -147,8 +148,8 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     // This is called off-chain
-    function getWorkers() external onlyAuthorized returns(address[] memory){
-        return workers[msg.sender];
+    function getWorkers(address _user) external view returns(address[] memory){
+        return workers[_user];
     }
 
     // DELETE THIS ON DEPLOYMENT
