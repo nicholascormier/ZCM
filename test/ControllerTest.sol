@@ -196,9 +196,23 @@ contract ControllerTest is Test, Shared {
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
-
-        NFT.supply();
+        
         assertTrue(NFT.balanceOf(workers[1]) == 1);
+    }
+
+    function test1155Mint() external {
+        Mock1155 NFT = new Mock1155();
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.startPrank(test_user);
+        Controller(proxy_address).createWorkers(1);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 1, false, 0);
+        vm.stopPrank();
+        
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        
+        assertTrue(NFT.balanceOf(workers[1], 0) == 1);
     }
 
 }

@@ -17,8 +17,5 @@ contract Mock721 is ERC721 {
         id++;
         _safeMint(msg.sender, id);
     }
-
-    function supply() external view returns (uint256) {
-        return id;
-    }
+    
 }

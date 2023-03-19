@@ -9,9 +9,9 @@ contract Mock1155 is ERC1155 {
 
     uint256 id;
 
-    function mint(uint256 _quantity) external {
-        _mint(msg.sender, 0, _quantity, "");
-        id += _quantity;
+    function mint() external {
+        _mint(msg.sender, 0, 1, "");
+        id++;
     }
 
 }
