@@ -58,7 +58,6 @@ contract ControllerTest is Test, Shared {
         assertEq(address(controller_logic), addr);
 
         Controller(proxy_address).initialize();
-        Controller(proxy_address).setBeacon(address(beacon));
         Controller(proxy_address).setWorkerTemplate(address(beacon_implementation));
         beacon.updateController(proxy_address);
 

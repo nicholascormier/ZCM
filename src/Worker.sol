@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
-interface IBCON {
+interface IProxyBeacon {
     function getImplementation() external view returns(address);
     function getControllerAddress() external view returns(address);
 }
@@ -11,17 +11,13 @@ interface IBCON {
 // Deployed by us, serves as template for proxies
 contract Worker {
 
-    address private _beacon;
-
     modifier onlyOwner{
-        // REPLACE _beacon WITH DEPLOYED BEACON
-        require(IBCON(_beacon).getControllerAddress() == msg.sender, "Not owner");
+        require(IProxyBeacon(0x5f7dc135AA0dFD0ec2E492B2515463cdBCDb8eE5).getControllerAddress() == msg.sender, "Not owner");
         _;
     }
     
     function getOwner() external returns(address) {
-        // REPLACE _beacon WITH DEPLOYED BEACON
-        return IBCON(_beacon).getControllerAddress();
+        return IProxyBeacon(0x5f7dc135AA0dFD0ec2E492B2515463cdBCDb8eE5).getControllerAddress();
     }
 
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {
@@ -51,11 +47,6 @@ contract Worker {
 
     function getBasicResponseProtected() external view onlyOwner returns(address) {
         return address(this);
-    }
-
-    // THIS IS FOR TESTING ONLY - DO NOT DEPLOY THIS FUNCTION
-    function setBeacon(address beacon) external {
-        _beacon = beacon;
     }
 
 }

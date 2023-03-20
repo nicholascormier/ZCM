@@ -3,9 +3,11 @@ pragma solidity ^0.8.0;
 
 import "./Beacon.sol";
 
-contract BeaconImplementation {
+interface IBeaconImplementation {
+    function getImplementation() external view returns(address);
+}
 
-    Beacon private _beacon;
+contract BeaconImplementation {
 
     function _delegate(address implementation) internal virtual {
         assembly {
@@ -34,11 +36,6 @@ contract BeaconImplementation {
 
     fallback() external payable{
         // REPLACE ADDRESS WITH DEPLOYED BEACON ADDRESS
-        _delegate(_beacon.getImplementation());
-    }
-
-    // THIS IS FOR TESTING ONLY - DO NOT DEPLOY THIS FUNCTION
-    function setBeacon(address beacon) external {
-        _beacon = Beacon(beacon);
+        _delegate(IBeaconImplementation(0x5f7dc135AA0dFD0ec2E492B2515463cdBCDb8eE5).getImplementation());
     }
 }

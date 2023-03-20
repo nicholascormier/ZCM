@@ -19,12 +19,17 @@ abstract contract Shared is Test {
     // configures on-chain dependencies.
     function _devDeployBase() internal {
         vm.startPrank(zenith_deployer);
-        beacon = new Beacon();
-        beacon_implementation = new BeaconImplementation();
-        beacon_implementation.setBeacon(address(beacon));
+        beacon = new Beacon{salt: convert(0)}();
+        beacon_implementation = new BeaconImplementation{salt: convert(1)}();
+        console.log(address(beacon), "beacon addy");
+        console.log(address(beacon_implementation), "implementation addy");
         worker_implementation = new Worker();
         beacon.updateImplementation(address(worker_implementation));
         vm.stopPrank();
+    }
+
+    function convert(uint256 n) private returns (bytes32) {
+        return bytes32(n);
     }
 
 }
