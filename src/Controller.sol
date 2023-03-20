@@ -8,7 +8,6 @@ import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/ClonesUpgradea
 interface IWorker {
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable returns (bool);
     function withdraw() external;
-    function setBeacon(address beacon) external;
 }
 
 import "../lib/forge-std/src/Test.sol";
@@ -22,9 +21,6 @@ contract Controller is Initializable, OwnableUpgradeable {
     mapping(bytes8 => uint256) private exhausted;
 
     IWorker private workerTemplate;
-
-    // DELETE THIS ON DEPLOYMENT
-    address private beacon;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -75,12 +71,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         require(workerTemplate != IWorker(address(0)), "No template");
 
         for(uint256 i = 0; i < _amount; i++){
-            // SWAP THESE ON DEPLOYMENT
-            //workers[msg.sender].push(ClonesUpgradeable.clone(address(workerTemplate)));
-
-            address workerAddy = ClonesUpgradeable.clone(address(workerTemplate));
-            IWorker(workerAddy).setBeacon(beacon);
-            workers[msg.sender].push(workerAddy);
+            workers[msg.sender].push(ClonesUpgradeable.clone(address(workerTemplate)));
         }
     }
 
@@ -150,11 +141,6 @@ contract Controller is Initializable, OwnableUpgradeable {
     // This is called off-chain
     function getWorkers(address _user) external view returns(address[] memory){
         return workers[_user];
-    }
-
-    // DELETE THIS ON DEPLOYMENT
-    function setBeacon(address _beacon) external onlyOwner {
-        beacon = _beacon;
     }
 
 }
