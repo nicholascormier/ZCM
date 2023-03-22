@@ -119,19 +119,19 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkersBB(address _target, bytes calldata _data, uint256 _value) external payable onlyAuthorized {
-        for (uint256 i = 1; i < 5; i++) {
-            IWorker(workers[msg.sender][i]).forwardCall{value: _value}(_target, _data, _value);
-        }
-    }
+    // function callWorkersBB(address _target, bytes calldata _data, uint256 _value) external payable onlyAuthorized {
+    //     for (uint256 i = 1; i < 5; i++) {
+    //         IWorker(workers[msg.sender][i]).forwardCall{value: _value}(_target, _data, _value);
+    //     }
+    // }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 _startIndex, uint256 _iterations, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256[] calldata _workers, uint256 _iterations, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        for (uint256 iterations = 0; iterations < _iterations; iterations++) {
+        for (uint256 i = 0; i < _workers.length; i++) {
             if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            bool success = IWorker(workers[msg.sender][_iterations + iterations]).forwardCall{value: _value}(_target, _data, _value);
+            bool success = IWorker(workers[msg.sender][_workers[i]]).forwardCall{value: _value}(_target, _data, _value);
             if (_trackMints && success) successfulCalls++;
         }
 
