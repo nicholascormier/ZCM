@@ -116,13 +116,13 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 _startIndex, uint256 _iterations, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256[] calldata _workerIndexes, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        for (uint256 iterations = 0; iterations < _iterations; iterations++) {
+        for (uint256 workerIndex = 0; workerIndex < _workerIndexes.length; workerIndex++) {
             if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            bool success = IWorker(workers[msg.sender][_iterations + iterations]).forwardCall{value: _value}(_target, _data, _value);
+            bool success = IWorker(workers[msg.sender][_workerIndexes[workerIndex]]).forwardCall{value: _value}(_target, _data, _value);
             if (_trackMints && success) successfulCalls++;
         }
 
@@ -136,6 +136,11 @@ contract Controller is Initializable, OwnableUpgradeable {
         for(uint256 i = 0; i < _workerIndexes.length; i++){
             IWorker(workers[msg.sender][_workerIndexes[i]]).withdraw();
         }
+    }
+
+    function testCloneCosts() external {
+        ClonesUpgradeable.predictDeterministicAddress(address(workerTemplate), bytes32(uint256(0)));
+
     }
 
     // This is called off-chain
