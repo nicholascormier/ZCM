@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import "../lib/forge-std/src/Test.sol";
 
-import "../src/Beacon.sol";
-import "../src/BeaconImplementation.sol";
 import "../src/Controller.sol";
 import "../src/ProxyController.sol";
 import "../src/Worker.sol";
@@ -58,8 +56,7 @@ contract ControllerTest is Test, Shared {
         assertEq(address(controller_logic), addr);
 
         Controller(proxy_address).initialize();
-        Controller(proxy_address).setWorkerTemplate(address(beacon_implementation));
-        beacon.updateController(proxy_address);
+        Controller(proxy_address).setWorkerTemplate(address(worker_implementation));
 
         vm.stopPrank();
     }
@@ -195,7 +192,7 @@ contract ControllerTest is Test, Shared {
         uint256[] memory ids = new uint256[](1);
         ids[0] = 1;
 
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, ids, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -214,7 +211,7 @@ contract ControllerTest is Test, Shared {
         uint256[] memory ids = new uint256[](1);
         ids[0] = 1;
 
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, ids, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -224,20 +221,14 @@ contract ControllerTest is Test, Shared {
 
     function testGasCosts() external {
         Mock721 NFT = new Mock721();
+        console.log(proxy_address);
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
 
         vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(100);
+        Controller(proxy_address).createWorkers(1);
 
-        Controller(proxy_address).testCloneCosts();
-
-        uint256[] memory workerArray = new uint256[](100);
-        for (uint256 i = 1; i < 101; i++) {
-            workerArray[i-1] = i;
-        }
-
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("safeMint()"), 0, workerArray, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
 
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
