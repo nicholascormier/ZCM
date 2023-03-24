@@ -143,4 +143,9 @@ contract Controller is Initializable, OwnableUpgradeable {
         return workers[_user];
     }
 
+
+    function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {
+        (bool success,) = _target.call{value: _value}(_data);
+        return success;
+    }
 }

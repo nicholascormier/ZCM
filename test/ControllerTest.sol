@@ -29,11 +29,24 @@ contract ControllerTest is Test, Shared {
     ProxyTester proxy = new ProxyTester();
     address proxy_address;
     address admin;
+    Mock721 NFT;
 
     function setUp() external {
         // shared
         _devDeployBase();
         _deployProxySetup();
+        _deployWorkers();
+    }
+
+    function _deployWorkers() internal {
+        NFT = new Mock721();
+        console.log(proxy_address);
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.startPrank(test_user);
+        Controller(proxy_address).createWorkers(250);
+        vm.stopPrank();
     }
 
     function _deployProxySetup() internal {
@@ -220,15 +233,8 @@ contract ControllerTest is Test, Shared {
     }
 
     function testGasCosts() external {
-        Mock721 NFT = new Mock721();
-        console.log(proxy_address);
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
         vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(1);
-
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 250, false, 0);
         vm.stopPrank();
 
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
