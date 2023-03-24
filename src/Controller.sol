@@ -9,9 +9,10 @@ interface IWorker {
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable returns (bool);
     function withdraw() external;
     function setBeacon(address beacon) external;
+    function setAdmin(address admin) external;
 }
 
-import "../lib/forge-std/src/Test.sol";
+import "./Worker.sol";
 
 // Deployed by us
 contract Controller is Initializable, OwnableUpgradeable {
@@ -35,6 +36,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         __Ownable_init();
     }
 
+    // remove modifiers
     modifier onlyAuthorized {
         // This catches out of bounds solidity error
         require(workers[msg.sender].length != 0, "UNAUTHORIZED");
@@ -42,6 +44,15 @@ contract Controller is Initializable, OwnableUpgradeable {
         require(workers[msg.sender][0] == msg.sender, "UNAUTHORIZED");
         _;
     }
+    
+    // ## micro optimization
+    // --custom errors--
+    // error UnauthorizedAccessError();
+    // function _isAuthorized(address _caller) internal pure returns (bool) {
+    //     return workers[_caller].length != 0 && workers[_caller[0] == _caller];
+    // function _authorize(address _caller) internal pure {
+    //     if (!_isAuthorized(_caller)) UnauthorizedAccessError();
+    // }
 
     function authorizeCaller(address _user) external onlyOwner {
         if(workers[_user].length == 0){
@@ -125,7 +136,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     //     }
     // }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256[] calldata _workers, uint256 _iterations, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256[] calldata _workers, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
@@ -141,6 +152,22 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
+    // function newCallWorkers(address _target, bytes calldata _data, uint256 _value, uint256[] calldata _workers, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+
+    //     bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
+
+    //     bytes memory workerData = abi.encodeWithSignature("forwardCall(address,bytes,uint256)", _target, _data, _value);
+
+    //     assembly {
+    //         let len := mload(_data)
+    //         for { let i := 0 } lt(i, len) { i := add(i, 1) } {
+    //             if and(_trackMints, eq(exhaused[allowanceHash], allowance[allowanceHash]) { stop() }
+    //             let success := mload(0x40)
+    //             call(gas(), workers[msg.sender][_workers[i]], _value, _data, )
+    //         }
+    //     }
+    // }
+
     function withdrawFromWorkers(uint256[] calldata _workerIndexes) external onlyAuthorized {
         for(uint256 i = 0; i < _workerIndexes.length; i++){
             IWorker(workers[msg.sender][_workerIndexes[i]]).withdraw();
@@ -155,6 +182,10 @@ contract Controller is Initializable, OwnableUpgradeable {
     // DELETE THIS ON DEPLOYMENT
     function setBeacon(address _beacon) external onlyOwner {
         beacon = _beacon;
+    }
+
+    function coinbase() external payable onlyAuthorized {
+        payable(block.coinbase).transfer(msg.value);
     }
 
 }

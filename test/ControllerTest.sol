@@ -136,7 +136,7 @@ contract ControllerTest is Test, Shared {
         vm.startPrank(test_user);
         controller.createWorkers(1);
 
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, ww, 1, false, 0);
+        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, ww, false, 0);
         vm.stopPrank();
         
         address[] memory workers = controller.getWorkers(test_user);
@@ -151,7 +151,7 @@ contract ControllerTest is Test, Shared {
 
         vm.startPrank(test_user);
         controller.createWorkers(1);
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, ww, 1, false, 0);
+        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, ww, false, 0);
         vm.stopPrank();
         
         address[] memory workers = controller.getWorkers(test_user);

@@ -59,6 +59,7 @@ abstract contract Shared is Test {
         controller.initialize();
         controller.setBeacon(address(beacon_proxy));
         controller.setWorkerTemplate(address(beacon_forwarder));
+        controller.authorizeCaller(test_user);
 
         vm.stopPrank();
     }

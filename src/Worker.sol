@@ -8,14 +8,18 @@ interface IBCON {
     function getControllerAddress() external view returns(address);
 }
 
+error UnauthorizedAccessError();
+
 // Deployed by us, serves as template for proxies
 contract Worker {
 
     address private _beacon;
+    address private admin;
 
     modifier onlyOwner{
         // REPLACE _beacon WITH DEPLOYED BEACON
         require(IBCON(_beacon).getControllerAddress() == msg.sender, "Not owner");
+        // if (msg.sender != admin) revert UnauthorizedAccessError();
         _;
     }
     
@@ -56,6 +60,11 @@ contract Worker {
     // THIS IS FOR TESTING ONLY - DO NOT DEPLOY THIS FUNCTION
     function setBeacon(address beacon) external {
         _beacon = beacon;
+    }
+
+    // test
+    function setAdmin(address _admin) external {
+        admin = _admin;
     }
 
 }
