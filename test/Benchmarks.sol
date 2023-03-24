@@ -52,45 +52,14 @@ contract Benchmarks is Test, Shared {
         vm.deal(test_user, 100 ether);
     }
 
-    uint256[] _workers = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
-
     function testZenithBenchmarkCustom() external {
         vm.prank(test_user);
+        uint256[] memory _workers = new uint256[](250);
+        for(uint256 i = 1; i <= 250; i++) {
+            _workers[i-1] = i;
+        }
         controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0 ether, _workers, false, 1);
     }
-
-    function testZenithBenchmarkCustomNew() external {
-        vm.prank(test_user);
-        
-    }
-
-    // function testThreeGm() external {
-    //     // vm.pauseGasMetering();
-
-    //     vm.createSelectFork("https://eth-mainnet.g.alchemy.com/v2/9WjoVKjkHy_qshqiax-zh_GwDGhiA5w9");
-
-    //     vm.prank(zenith_deployer);
-    //     controller.authorizeCaller(test_user);
-
-    //     vm.prank(test_user);
-    //     controller.createWorkers(20);
-
-    //     vm.deal(test_user, 100 ether);
-    //     vm.roll(16834623);
-
-    //     vm.prank(0x1a876f4719515968f85123600cb6a62831cA2718);
-    //     TheRobbersNFT(0xe470157F9d54Fab676c9B6A400EBd8beDAfE5BaB).activatePhases(_phase, false);
-        
-    //     bytes memory data = abi.encodeWithSignature("mintPhase(uint256,uint64)", 2, 2);
-
-    //     // vm.resumeGasMetering();
-
-    //     controller.callWorkers(0xe470157F9d54Fab676c9B6A400EBd8beDAfE5BaB, data, 0.0154 ether, _workers, false, 0);
-        
-    //     vm.pauseGasMetering();
-
-    //     // verify mint success
-    // }
 
     function testCryBenchmark() external {
         vm.createSelectFork("https://eth-mainnet.g.alchemy.com/v2/9WjoVKjkHy_qshqiax-zh_GwDGhiA5w9");
