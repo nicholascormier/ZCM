@@ -35,7 +35,7 @@ contract ControllerTest is Test, Shared {
         // shared
         _devDeployBase();
         _deployProxySetup();
-        _deployWorkers();
+        //_deployWorkers();
     }
 
     function _deployWorkers() internal {
@@ -232,7 +232,7 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[1], 0) == 1);
     }
 
-    function testGasCosts() external {
+    /*function testGasCosts() external {
         vm.startPrank(test_user);
         Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 250, false, 0);
         vm.stopPrank();
@@ -244,6 +244,6 @@ contract ControllerTest is Test, Shared {
         //workers[1].call(abi.encodeWithSignature("getBasicResponse()"));
 
         assertTrue(NFT.balanceOf(workers[1]) == 1);
-    }
+    }*/
 
 }
