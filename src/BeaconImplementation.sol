@@ -8,7 +8,6 @@ interface IBeaconImplementation {
 }
 
 contract BeaconImplementation {
-
     function _delegate(address implementation) internal virtual {
         assembly {
         // Copy msg.data. We take full control of memory in this inline assembly
