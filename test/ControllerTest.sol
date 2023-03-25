@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import "../lib/forge-std/src/Test.sol";
 
-import "../src/Beacon.sol";
-import "../src/BeaconImplementation.sol";
 import "../src/Controller.sol";
 import "../src/ProxyController.sol";
 import "../src/Worker.sol";
@@ -31,11 +29,24 @@ contract ControllerTest is Test, Shared {
     ProxyTester proxy = new ProxyTester();
     address proxy_address;
     address admin;
+    Mock721 NFT;
 
     function setUp() external {
         // shared
         _devDeployBase();
         _deployProxySetup();
+        _deployWorkers();
+    }
+
+    function _deployWorkers() internal {
+        NFT = new Mock721();
+        console.log(proxy_address);
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.startPrank(test_user);
+        Controller(proxy_address).createWorkers(250);
+        vm.stopPrank();
     }
 
     function _deployProxySetup() internal {
@@ -58,8 +69,7 @@ contract ControllerTest is Test, Shared {
         assertEq(address(controller_logic), addr);
 
         Controller(proxy_address).initialize();
-        Controller(proxy_address).setWorkerTemplate(address(beacon_implementation));
-        beacon.updateController(proxy_address);
+        Controller(proxy_address).setWorkerTemplate(address(worker_implementation));
 
         vm.stopPrank();
     }
@@ -191,7 +201,11 @@ contract ControllerTest is Test, Shared {
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(1);
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 1, false, 0);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 1;
+
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -206,12 +220,30 @@ contract ControllerTest is Test, Shared {
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(1);
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 1, false, 0);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 1;
+
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         
         assertTrue(NFT.balanceOf(workers[1], 0) == 1);
+    }
+
+    function testGasCosts() external {
+        vm.startPrank(test_user);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 250, false, 0);
+        vm.stopPrank();
+
+        //console.log(address(controller_logic), "proxy addy");
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+
+        //workers[1].call(abi.encodeWithSignature("getBasicResponse()"));
+
+        assertTrue(NFT.balanceOf(workers[1]) == 1);
     }
 
 }

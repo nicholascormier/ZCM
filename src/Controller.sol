@@ -70,8 +70,10 @@ contract Controller is Initializable, OwnableUpgradeable {
     function createWorkers(uint256 _amount) external onlyAuthorized {
         require(workerTemplate != IWorker(address(0)), "No template");
 
+        address worker = address(workerTemplate);
+
         for(uint256 i = 0; i < _amount; i++){
-            workers[msg.sender].push(ClonesUpgradeable.clone(address(workerTemplate)));
+            workers[msg.sender].push(ClonesUpgradeable.clone(worker));
         }
     }
 
@@ -116,13 +118,15 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 _startIndex, uint256 _iterations, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        for (uint256 iterations = 0; iterations < _iterations; iterations++) {
+        address[] memory workersCache = workers[msg.sender];
+
+        for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
             if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            bool success = IWorker(workers[msg.sender][_iterations + iterations]).forwardCall{value: _value}(_target, _data, _value);
+            bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
             if (_trackMints && success) successfulCalls++;
         }
 
@@ -142,5 +146,4 @@ contract Controller is Initializable, OwnableUpgradeable {
     function getWorkers(address _user) external view returns(address[] memory){
         return workers[_user];
     }
-
 }
