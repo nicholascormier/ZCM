@@ -29,7 +29,6 @@ contract ControllerTest is Test, Shared {
     ProxyTester proxy = new ProxyTester();
     address proxy_address;
     address admin;
-    Mock721 NFT;
 
     function setUp() external {
         // shared
@@ -39,7 +38,7 @@ contract ControllerTest is Test, Shared {
     }
 
     function _deployWorkers() internal {
-        NFT = new Mock721();
+        //NFT = new Mock721();
         console.log(proxy_address);
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
@@ -194,7 +193,7 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).withdrawFromWorkers(ww);
     }
 
-    function test721Mint() external {
+    function testCallWorkers721() external {
         Mock721 NFT = new Mock721();
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
@@ -213,7 +212,9 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[1]) == 1);
     }
 
-    function test1155Mint() external {
+    
+
+    function testCallWorkers1155() external {
         Mock1155 NFT = new Mock1155();
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);

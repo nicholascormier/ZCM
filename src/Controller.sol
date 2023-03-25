@@ -7,6 +7,7 @@ import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/ClonesUpgradea
 
 interface IWorker {
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable returns (bool);
+    function forwardCalls(address _target, bytes[] calldata _data, uint256[] calldata _values) external payable returns(uint256 successes);
     function withdraw() external;
 }
 
@@ -77,44 +78,60 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkersMultiSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _workerIndexes, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
+        address[] memory workersCache = workers[msg.sender];
+
+        // data structure: _data[workerIndex][callIndex]
+        // data structure: _values[workerIndex][callIndex]
+
+        for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
+            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCalls(_target, _data[workerIndex], _values[workerIndex]);
+        }
+    }
+
+    // TODO Add tracking to this function (reminder that tracking here can be unique to each worker because each worker could be doing different transactions)
+    function callWorkersCustom(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
+        address[] memory workersCache = workers[msg.sender];
+
+        for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
+            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall(_target, _data[workerIndex], _values[workerIndex]);
+        }
+    }
+
+    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        for (uint256 workerIndex = 0; workerIndex < _workerIndexes.length; workerIndex++) {
-            for (uint256 dataIndex; dataIndex < _data[workerIndex].length; dataIndex++) {
-                if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-                bool success = IWorker(workers[msg.sender][_workerIndexes[workerIndex]]).forwardCall(_target, _data[workerIndex][dataIndex], _values[workerIndex][dataIndex]);
-                if (_trackMints && success) successfulCalls++;
-            }
+        address[] memory workersCache = workers[msg.sender];
+
+        for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
+            if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
+            uint256 successes = IWorker(workersCache[workerIndex + 1]).forwardCalls(_target, _data, _values);
+
+            if (_trackMints) successfulCalls += successes;
         }
 
         if (_trackMints) {
-            // require(allowanceToOwner[allowanceHash] == msg.sender, "UNAUTHORIZED ACCESS OF ALLOWANCE HASH.");
             uint256 increments = successfulCalls * _units;
             exhausted[allowanceHash] += increments;
         }
     }
 
-    function callWorkersMulti(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256[] calldata _workerIndexes, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    function callWorkersMultiple(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        for (uint256 workerIndex = 0; workerIndex < _workerIndexes.length; workerIndex++) {
+        address[] memory workersCache = workers[msg.sender];
+
+        for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
             if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            bool success = IWorker(workers[msg.sender][_workerIndexes[workerIndex]]).forwardCall(_target, _data[workerIndex], _values[workerIndex]);
+            bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
             if (_trackMints && success) successfulCalls++;
         }
 
         if (_trackMints) {
             uint256 increments = successfulCalls * _units;
             exhausted[allowanceHash] += increments;
-        }
-    }
-
-    function callWorkersBB(address _target, bytes calldata _data, uint256 _value) external payable onlyAuthorized {
-        for (uint256 i = 1; i < 5; i++) {
-            IWorker(workers[msg.sender][i]).forwardCall{value: _value}(_target, _data, _value);
         }
     }
 

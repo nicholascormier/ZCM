@@ -25,6 +25,14 @@ contract Worker {
         return success;
     }
 
+    function forwardCalls(address _target, bytes[] calldata _data, uint256[] calldata _values) external payable onlyOwner returns(uint256 successes) {
+        for(uint256 i = 0; i < _data.length; i++){
+            (bool success,) = _target.call{value: _values[i]}(_data[i]);
+            if(success) successes++;
+        }
+        return successes;
+    }
+
     // This shouldn't exist without Ownable (expensive gas-wise)
     function withdraw() external onlyOwner {
         payable(tx.origin).transfer(address(this).balance);
