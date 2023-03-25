@@ -16,7 +16,7 @@ contract Worker {
         _;
     }
     
-    function getOwner() external returns(address) {
+    function getOwner() external pure returns(address) {
         return 0xffD4505B3452Dc22f8473616d50503bA9E1710Ac;
     }
 
