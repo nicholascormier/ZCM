@@ -237,7 +237,11 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 250, false, 0);
         vm.stopPrank();
 
+        //console.log(address(controller_logic), "proxy addy");
+
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+
+        //workers[1].call(abi.encodeWithSignature("getBasicResponse()"));
 
         assertTrue(NFT.balanceOf(workers[1]) == 1);
     }
