@@ -19,11 +19,14 @@ import "./Shared.sol";
 
 contract ControllerTest is Test, Shared {
 
+    // Variable storing the address of the controller logic contract
     Controller controller_logic = new Controller();
 
+    // Proxy management variables
     ProxyController controller_proxy;
     ProxyAdmin controller_admin;
 
+    // Variable storing test_
     address test_user = vm.addr(3493847394);
 
     ProxyTester proxy = new ProxyTester();
@@ -35,6 +38,7 @@ contract ControllerTest is Test, Shared {
 
     bytes[] data;
     uint256[] values;
+    uint256[] workerIndexes;
 
     function setUp() external {
         // shared
@@ -188,13 +192,17 @@ contract ControllerTest is Test, Shared {
     }
 
     function _mintTestSetup() internal {
+        _mintTestSetup(1);
+    }
+
+    function _mintTestSetup(uint256 workerCount) internal {
         NFT = new Mock721();
         NFT2 = new Mock1155();
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
 
         vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(1);
+        Controller(proxy_address).createWorkers(workerCount);
         vm.stopPrank();
     }
 
@@ -228,6 +236,27 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[1]) == 2);
     }
 
+    function testCallWorkersCustom721() external {
+        _mintTestSetup(2);
+        
+        vm.startPrank(test_user);
+
+        Controller controller = Controller(proxy_address);
+
+        data = [abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint(uint256)", 5)];
+        values = [uint256(0), uint256(0)];
+        workerIndexes = [1, 2];
+
+        //controller.callWorkersCustom(address(NFT), data, values, workers, false, 0);
+        controller.callWorkersCustom(address(NFT), data, values, workerIndexes);
+
+        vm.stopPrank();
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        assertTrue(NFT.balanceOf(workers[1]) == 1);
+        assertTrue(NFT.balanceOf(workers[2]) == 5);
+    }
+
     function testCallWorkers1155() external {
         _mintTestSetup();
         
@@ -235,10 +264,10 @@ contract ControllerTest is Test, Shared {
 
         Controller controller = Controller(proxy_address);
 
-        Controller(proxy_address).callWorkers(address(NFT2), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        controller.callWorkers(address(NFT2), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
-        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        address[] memory workers = controller.getWorkers(test_user);
         
         assertTrue(NFT2.balanceOf(workers[1], 0) == 1);
     }

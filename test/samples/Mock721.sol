@@ -13,6 +13,14 @@ contract Mock721 is ERC721 {
         _mint(msg.sender, id);
     }
 
+    function mint(uint256 quantity) external {
+        require(quantity > 0, "Quantity must be greater than 0");
+        for(uint256 i = 0; i < quantity; i++){
+            id++;
+            _mint(msg.sender, id);
+        }
+    }
+
     function safeMint() external {
         id++;
         _safeMint(msg.sender, id);
