@@ -117,24 +117,6 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkersMultiple(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
-        uint256 successfulCalls;
-        bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
-
-        address[] memory workersCache = workers[msg.sender];
-
-        for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
-            if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
-            if (_trackMints && success) successfulCalls++;
-        }
-
-        if (_trackMints) {
-            uint256 increments = successfulCalls * _units;
-            exhausted[allowanceHash] += increments;
-        }
-    }
-
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);

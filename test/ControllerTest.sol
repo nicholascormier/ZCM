@@ -30,22 +30,16 @@ contract ControllerTest is Test, Shared {
     address proxy_address;
     address admin;
 
+    Mock721 NFT = new Mock721();
+    Mock1155 NFT2 = new Mock1155();
+
+    bytes[] data;
+    uint256[] values;
+
     function setUp() external {
         // shared
         _devDeployBase();
         _deployProxySetup();
-        //_deployWorkers();
-    }
-
-    function _deployWorkers() internal {
-        //NFT = new Mock721();
-        console.log(proxy_address);
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
-        vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(250);
-        vm.stopPrank();
     }
 
     function _deployProxySetup() internal {
@@ -193,17 +187,21 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).withdrawFromWorkers(ww);
     }
 
-    function testCallWorkers721() external {
-        Mock721 NFT = new Mock721();
+    function _mintTestSetup() internal {
+        NFT = new Mock721();
+        NFT2 = new Mock1155();
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(1);
+        vm.stopPrank();
+    }
 
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = 1;
+    function testCallWorkers721() external {
+        _mintTestSetup();
 
+        vm.prank(test_user);
         Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
@@ -212,25 +210,37 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[1]) == 1);
     }
 
-    
+    function testCallWorkersSequential721() external {
+        _mintTestSetup();
+        
+        vm.startPrank(test_user);
+
+        Controller controller = Controller(proxy_address);
+
+        data = [abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint()")];
+        values = [uint256(0), uint256(0)];
+
+        controller.callWorkersSequential(address(NFT), data, values, 1, false, 0);
+
+        vm.stopPrank();
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        assertTrue(NFT.balanceOf(workers[1]) == 2);
+    }
 
     function testCallWorkers1155() external {
-        Mock1155 NFT = new Mock1155();
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
+        _mintTestSetup();
+        
         vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(1);
 
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = 1;
+        Controller controller = Controller(proxy_address);
 
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT2), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         
-        assertTrue(NFT.balanceOf(workers[1], 0) == 1);
+        assertTrue(NFT2.balanceOf(workers[1], 0) == 1);
     }
 
     /*function testGasCosts() external {
