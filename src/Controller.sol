@@ -78,6 +78,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
+    // TODO Add tracking to this function as well
     function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
         address[] memory workersCache = workers[msg.sender];
 
