@@ -37,7 +37,9 @@ contract ControllerTest is Test, Shared {
     Mock1155 NFT2 = new Mock1155();
 
     bytes[] data;
+    bytes[][] recursiveData;
     uint256[] values;
+    uint256[][] recursiveValues;
     uint256[] workerIndexes;
 
     function setUp() external {
@@ -255,6 +257,33 @@ contract ControllerTest is Test, Shared {
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         assertTrue(NFT.balanceOf(workers[1]) == 1);
         assertTrue(NFT.balanceOf(workers[2]) == 5);
+    }
+
+    // Helper function for testing call below - cannot be done without
+    function _assignRecursiveData(bytes[][] memory _data, uint256[][] memory _values) internal{
+        recursiveData = _data;
+        recursiveValues = _values;
+    }
+
+    function testCallWorkersCustomSequential721() external {
+        _mintTestSetup(2);
+        
+        vm.startPrank(test_user);
+
+        Controller controller = Controller(proxy_address);
+
+        recursiveData = [[abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint(uint256)", 5)], [abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint()")]];
+        recursiveValues = [[uint256(0), uint256(0)], [uint256(0), uint256(0)]];
+        workerIndexes = [1, 2];
+
+        //controller.callWorkersCustoSequential(address(NFT), data, values, workers, false, 0);
+        controller.callWorkersCustomSequential(address(NFT), recursiveData, recursiveValues, workerIndexes);
+
+        vm.stopPrank();
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        assertTrue(NFT.balanceOf(workers[1]) == 6);
+        assertTrue(NFT.balanceOf(workers[2]) == 2);
     }
 
     function testCallWorkers1155() external {
