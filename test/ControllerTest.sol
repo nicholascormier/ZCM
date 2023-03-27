@@ -172,7 +172,7 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).authorizeCaller(test_user);
 
         vm.prank(test_user);
-        Controller(proxy_address).withdrawFromWorkers(ww);
+        Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
     }
 
     // saves some lines.
@@ -182,7 +182,7 @@ contract ControllerTest is Test, Shared {
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(1);
-        Controller(proxy_address).withdrawFromWorkers(ww);
+        Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
         vm.stopPrank();
 
         vm.prank(zenith_deployer);
@@ -191,7 +191,7 @@ contract ControllerTest is Test, Shared {
         vm.expectRevert();
 
         vm.prank(test_user);
-        Controller(proxy_address).withdrawFromWorkers(ww);
+        Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
     }
 
     function _mintTestSetup() internal {
@@ -309,18 +309,16 @@ contract ControllerTest is Test, Shared {
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
 
         vm.deal(test_user, 1 ether);
-        Controller(proxy_address).callWorkers{value: test_user.balance}(address(NFT), abi.encodeWithSignature("paidMint()"), 0.01 ether, 1, false, 0);
+        workers[1].call{value: 1 ether}(abi.encodeWithSignature("testPayment()"));
 
-        // check balances here because worker is not receiving eth
-        
-        assertTrue(workers[1].balance == 0.99 ether);
+        assertTrue(workers[1].balance == 1 ether);
         
         workerIndexes = [1];
 
-        Controller(proxy_address).withdrawFromWorkers(workerIndexes);
+        Controller(proxy_address).withdrawFromWorkers(workerIndexes, payable(test_user));
         // tx.origin is not a known address - figure out vm cheat code
         // address does not have any excess eth for some reason
-        assertTrue(test_user.balance == 0.99 ether);
+        assertTrue(test_user.balance == 1 ether);
         vm.stopPrank();
     }
 

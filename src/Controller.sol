@@ -8,7 +8,7 @@ import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/ClonesUpgradea
 interface IWorker {
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable returns (bool);
     function forwardCalls(address _target, bytes[] calldata _data, uint256[] calldata _values) external payable returns(uint256 successes);
-    function withdraw() external;
+    function withdraw(address payable withdrawTo) external;
 }
 
 import "../lib/forge-std/src/Test.sol";
@@ -135,10 +135,14 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function withdrawFromWorkers(uint256[] calldata _workerIndexes) external onlyAuthorized {
+    function withdrawFromWorkers(uint256[] calldata _workerIndexes, address payable withdrawTo) external onlyAuthorized {
         for(uint256 i = 0; i < _workerIndexes.length; i++){
-            IWorker(workers[msg.sender][_workerIndexes[i]]).withdraw();
+            IWorker(workers[msg.sender][_workerIndexes[i]]).withdraw(withdrawTo);
         }
+    }
+
+    function withdrawFromController() external onlyOwner {
+        payable(tx.origin).transfer(address(this).balance);
     }
 
     // This is called off-chain

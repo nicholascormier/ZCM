@@ -21,10 +21,8 @@ contract Worker {
         return 0xffD4505B3452Dc22f8473616d50503bA9E1710Ac;
     }
 
-    function withdraw() external onlyOwner {
-        console.log(tx.origin, "origin");
-        console.log("balance", address(this));
-        payable(tx.origin).transfer(address(this).balance);
+    function withdraw(address payable withdrawTo) external onlyOwner {
+        withdrawTo.transfer(address(this).balance);
     }
 
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {
@@ -58,5 +56,7 @@ contract Worker {
     function getBasicResponseProtected() external view onlyOwner returns(address) {
         return address(this);
     }
+
+    function testPayment() external payable {}
 
 }
