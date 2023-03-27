@@ -40,6 +40,7 @@ contract ControllerTest is Test, Shared {
     bytes[][] recursiveData;
     uint256[] values;
     uint256[][] recursiveValues;
+    uint256[] recursiveTotalValues;
     uint256[] workerIndexes;
 
     function setUp() external {
@@ -224,33 +225,35 @@ contract ControllerTest is Test, Shared {
         _mintTestSetup();
         
         vm.startPrank(test_user);
+        vm.deal(test_user, 100 ether);
 
         Controller controller = Controller(proxy_address);
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
 
-        data = [abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint()")];
-        values = [uint256(0), uint256(0)];
+        data = [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", workers[1], test_user, 1)];
+        values = [0.01 ether, uint256(0)];
 
-        controller.callWorkersSequential(address(NFT), data, values, 1, false, 0);
+        controller.callWorkersSequential{value: 0.01 ether}(address(NFT), data, values, 0.01 ether, 1, false, 0);
 
         vm.stopPrank();
 
-        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
-        assertTrue(NFT.balanceOf(workers[1]) == 2);
+        assertTrue(NFT.balanceOf(test_user) == 1);
     }
 
     function testCallWorkersCustom721() external {
         _mintTestSetup(2);
         
         vm.startPrank(test_user);
+        vm.deal(test_user, 100 ether);
 
         Controller controller = Controller(proxy_address);
 
-        data = [abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint(uint256)", 5)];
-        values = [uint256(0), uint256(0)];
+        data = [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("mint(uint256)", 5)];
+        values = [uint256(0.01 ether), uint256(0)];
         workerIndexes = [1, 2];
 
         //controller.callWorkersCustom(address(NFT), data, values, workers, false, 0);
-        controller.callWorkersCustom(address(NFT), data, values, workerIndexes);
+        controller.callWorkersCustom{value: 0.01 ether}(address(NFT), data, values, workerIndexes);
 
         vm.stopPrank();
 
@@ -259,25 +262,21 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[2]) == 5);
     }
 
-    // Helper function for testing call below - cannot be done without
-    function _assignRecursiveData(bytes[][] memory _data, uint256[][] memory _values) internal{
-        recursiveData = _data;
-        recursiveValues = _values;
-    }
-
     function testCallWorkersCustomSequential721() external {
         _mintTestSetup(2);
         
         vm.startPrank(test_user);
+        vm.deal(test_user, 100 ether);
 
         Controller controller = Controller(proxy_address);
 
-        recursiveData = [[abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint(uint256)", 5)], [abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint()")]];
-        recursiveValues = [[uint256(0), uint256(0)], [uint256(0), uint256(0)]];
+        recursiveData = [[abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint(uint256)", 5)], [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("mint()")]];
+        recursiveValues = [[uint256(0), uint256(0)], [0.01 ether, uint256(0)]];
+        recursiveTotalValues = [uint256(0), 0.01 ether];
         workerIndexes = [1, 2];
 
         //controller.callWorkersCustoSequential(address(NFT), data, values, workers, false, 0);
-        controller.callWorkersCustomSequential(address(NFT), recursiveData, recursiveValues, workerIndexes);
+        controller.callWorkersCustomSequential{value: 0.01 ether}(address(NFT), recursiveData, recursiveValues, recursiveTotalValues, workerIndexes);
 
         vm.stopPrank();
 
@@ -286,6 +285,7 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[2]) == 2);
     }
 
+    // Only 1155 test - if all the 721 tests worked, and this one passes, all the 1155 tests should work.
     function testCallWorkers1155() external {
         _mintTestSetup();
         
@@ -301,18 +301,6 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT2.balanceOf(workers[1], 0) == 1);
     }
 
-    /*function testGasCosts() external {
-        vm.startPrank(test_user);
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 250, false, 0);
-        vm.stopPrank();
-
-        //console.log(address(controller_logic), "proxy addy");
-
-        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
-
-        //workers[1].call(abi.encodeWithSignature("getBasicResponse()"));
-
-        assertTrue(NFT.balanceOf(workers[1]) == 1);
-    }*/
+    
 
 }

@@ -79,14 +79,14 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     // TODO Add tracking to this function as well
-    function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
+    function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _totalValues, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
         address[] memory workersCache = workers[msg.sender];
 
         // data structure: _data[workerIndex][callIndex]
         // data structure: _values[workerIndex][callIndex]
 
         for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
-            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCalls(_target, _data[workerIndex], _values[workerIndex]);
+            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCalls{value: _totalValues[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
         }
     }
 
@@ -95,19 +95,18 @@ contract Controller is Initializable, OwnableUpgradeable {
         address[] memory workersCache = workers[msg.sender];
 
         for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
-            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall(_target, _data[workerIndex], _values[workerIndex]);
+            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall{value: _values[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
         }
     }
 
-    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    // This function is at the stack limit - no more local variables can be added (because of that, costs about 800 more gas per iteration)
+    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 totalValue, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        address[] memory workersCache = workers[msg.sender];
-
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
             if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            uint256 successes = IWorker(workersCache[workerIndex + 1]).forwardCalls(_target, _data, _values);
+            uint256 successes = IWorker(workers[msg.sender][workerIndex + 1]).forwardCalls{value: totalValue}(_target, _data, _values);
 
             if (_trackMints) successfulCalls += successes;
         }
