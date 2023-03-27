@@ -301,6 +301,27 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT2.balanceOf(workers[1], 0) == 1);
     }
 
-    
+    function testWithdrawFromWorker() external {
+        _mintTestSetup();
+
+        vm.startPrank(test_user);
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+
+        vm.deal(test_user, 1 ether);
+        Controller(proxy_address).callWorkers{value: test_user.balance}(address(NFT), abi.encodeWithSignature("paidMint()"), 0.01 ether, 1, false, 0);
+
+        // check balances here because worker is not receiving eth
+        
+        assertTrue(workers[1].balance == 0.99 ether);
+        
+        workerIndexes = [1];
+
+        Controller(proxy_address).withdrawFromWorkers(workerIndexes);
+        // tx.origin is not a known address - figure out vm cheat code
+        // address does not have any excess eth for some reason
+        assertTrue(test_user.balance == 0.99 ether);
+        vm.stopPrank();
+    }
 
 }

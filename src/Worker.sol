@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+import "../lib/forge-std/src/console.sol";
 
 interface IProxyBeacon {
     function getImplementation() external view returns(address);
@@ -20,6 +21,12 @@ contract Worker {
         return 0xffD4505B3452Dc22f8473616d50503bA9E1710Ac;
     }
 
+    function withdraw() external onlyOwner {
+        console.log(tx.origin, "origin");
+        console.log("balance", address(this));
+        payable(tx.origin).transfer(address(this).balance);
+    }
+
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {
         (bool success,) = _target.call{value: _value}(_data);
         return success;
@@ -31,11 +38,6 @@ contract Worker {
             if(success) successes++;
         }
         return successes;
-    }
-
-    // This shouldn't exist without Ownable (expensive gas-wise)
-    function withdraw() external onlyOwner {
-        payable(tx.origin).transfer(address(this).balance);
     }
 
     // ERC721 safeMint compliance
