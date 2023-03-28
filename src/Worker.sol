@@ -12,12 +12,14 @@ interface IProxyBeacon {
 contract Worker {
 
     modifier onlyOwner{
-        require(0xffD4505B3452Dc22f8473616d50503bA9E1710Ac == msg.sender, "Not owner");
+        // require(0xffD4505B3452Dc22f8473616d50503bA9E1710Ac == msg.sender, "Not owner");
+        require(0x9cC6334F1A7Bc20c9Dde91Db536E194865Af0067 == msg.sender, "Not owner");
         _;
     }
     
     function getOwner() external pure returns(address) {
-        return 0xffD4505B3452Dc22f8473616d50503bA9E1710Ac;
+        return 0x9cC6334F1A7Bc20c9Dde91Db536E194865Af0067;
+        // return 0xffD4505B3452Dc22f8473616d50503bA9E1710Ac;
     }
 
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {

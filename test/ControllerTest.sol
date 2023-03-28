@@ -27,7 +27,7 @@ contract ControllerTest is Test, Shared {
     address test_user = vm.addr(3493847394);
 
     ProxyTester proxy = new ProxyTester();
-    address proxy_address;
+    address payable proxy_address;
     address admin;
     Mock721 NFT;
 
@@ -54,7 +54,7 @@ contract ControllerTest is Test, Shared {
         admin = vm.addr(69);
 
         proxy.setType("uups");
-        proxy_address = proxy.deploy(address(controller_logic), admin);
+        proxy_address = payable(proxy.deploy(address(controller_logic), admin));
 
         bytes32 implSlot = bytes32(
             uint256(keccak256("eip1967.proxy.implementation")) - 1
@@ -205,7 +205,7 @@ contract ControllerTest is Test, Shared {
         uint256[] memory ids = new uint256[](1);
         ids[0] = 1;
 
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -224,12 +224,16 @@ contract ControllerTest is Test, Shared {
         uint256[] memory ids = new uint256[](1);
         ids[0] = 1;
 
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         
         assertTrue(NFT.balanceOf(workers[1], 0) == 1);
+    }
+
+    function testValues() external {
+        console.log(proxy_address);
     }
 
     /*function testGasCosts() external {
