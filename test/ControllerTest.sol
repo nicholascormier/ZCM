@@ -41,6 +41,7 @@ contract ControllerTest is Test, Shared {
     function _deployWorkers() internal {
         NFT = new Mock721();
         console.log(proxy_address);
+        console.log(zenith_deployer);
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
 

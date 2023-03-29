@@ -24,6 +24,8 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        // include in live deployments
+        // if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
         _disableInitializers();
     }
 
