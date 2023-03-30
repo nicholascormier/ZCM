@@ -15,7 +15,7 @@ abstract contract Shared is Test {
     // configures on-chain dependencies.
     function _devDeployBase() internal {
         vm.startPrank(zenith_deployer);
-        worker_implementation = new Worker();
+        worker_implementation = new Worker{salt: ""}();
         vm.stopPrank();
     }
 

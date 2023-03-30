@@ -25,6 +25,8 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        // include in live deployments
+        if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
         _disableInitializers();
     }
 
@@ -33,11 +35,18 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     modifier onlyAuthorized {
+        // implement on deployment. always reverts within foundry
+        require(msg.sender == tx.origin, "Not callable from contract.");
         // This catches out of bounds solidity error
         require(workers[msg.sender].length != 0, "UNAUTHORIZED");
         // This catches deauthorized but priorly authorized users
         require(workers[msg.sender][0] == msg.sender, "UNAUTHORIZED");
         _;
+        _refund();
+    }
+
+    function _refund() internal {
+        if (address(this).balance > 0) payable(msg.sender).transfer(address(this).balance);
     }
 
     function authorizeCaller(address _user) external onlyOwner {
@@ -70,9 +79,7 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     function createWorkers(uint256 _amount) external onlyAuthorized {
         require(workerTemplate != IWorker(address(0)), "No template");
-
         address worker = address(workerTemplate);
-
         for(uint256 i = 0; i < _amount; i++){
             workers[msg.sender].push(ClonesUpgradeable.clone(worker));
         }
@@ -111,7 +118,7 @@ contract Controller is Initializable, OwnableUpgradeable {
             if (_trackMints) successfulCalls += successes;
         }
 
-        if (_trackMints) {
+        if (_units == 0 && allowance[allowanceHash] != 0) {
             uint256 increments = successfulCalls * _units;
             exhausted[allowanceHash] += increments;
         }
@@ -124,12 +131,12 @@ contract Controller is Initializable, OwnableUpgradeable {
         address[] memory workersCache = workers[msg.sender];
 
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
-            if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
+            if (_units == 0 && allowance[allowanceHash] != 0 && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
             bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
-            if (_trackMints && success) successfulCalls++;
+            if (_units == 0 && success) successfulCalls++;
         }
 
-        if (_trackMints) {
+        if (_units == 0 && allowance[allowanceHash] != 0) {
             uint256 increments = successfulCalls * _units;
             exhausted[allowanceHash] += increments;
         }
@@ -149,4 +156,13 @@ contract Controller is Initializable, OwnableUpgradeable {
     function getWorkers(address _user) external view returns(address[] memory){
         return workers[_user];
     }
+
+    receive() payable external {
+        revert("Contract cannot receive Ether.");
+    }
+
+    fallback() external {
+        revert();
+    }
+
 }

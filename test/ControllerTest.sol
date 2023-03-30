@@ -30,7 +30,7 @@ contract ControllerTest is Test, Shared {
     address test_user = vm.addr(3493847394);
 
     ProxyTester proxy = new ProxyTester();
-    address proxy_address;
+    address payable proxy_address;
     address admin;
 
     Mock721 NFT = new Mock721();
@@ -54,7 +54,7 @@ contract ControllerTest is Test, Shared {
         admin = vm.addr(69);
 
         proxy.setType("uups");
-        proxy_address = proxy.deploy(address(controller_logic), admin);
+        proxy_address = payable(proxy.deploy(address(controller_logic), admin));
 
         bytes32 implSlot = bytes32(
             uint256(keccak256("eip1967.proxy.implementation")) - 1
@@ -288,7 +288,6 @@ contract ControllerTest is Test, Shared {
     // Only 1155 test - if all the 721 tests worked, and this one passes, all the 1155 tests should work.
     function testCallWorkers1155() external {
         _mintTestSetup();
-        
         vm.startPrank(test_user);
 
         Controller controller = Controller(proxy_address);

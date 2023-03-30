@@ -1,0 +1,3 @@
+Benchmarks:testCryBenchmark() (gas: 1022736)
+Benchmarks:testZenithBenchmarkCustom() (gas: 1276165)
+Benchmarks:testZenithBenchmarkCustomNew() (gas: 5209)
