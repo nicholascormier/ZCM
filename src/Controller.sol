@@ -7,7 +7,8 @@ import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/ClonesUpgradea
 
 interface IWorker {
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable returns (bool);
-    function withdraw() external;
+    function forwardCalls(address _target, bytes[] calldata _data, uint256[] calldata _values) external payable returns(uint256 successes);
+    function withdraw(address payable withdrawTo) external;
 }
 
 import "../lib/forge-std/src/Test.sol";
@@ -25,7 +26,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // include in live deployments
-        if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
+        //if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
         _disableInitializers();
     }
 
@@ -35,7 +36,7 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     modifier onlyAuthorized {
         // implement on deployment. always reverts within foundry
-        require(msg.sender == tx.origin, "Not callable from contract.");
+        //require(msg.sender == tx.origin, "Not callable from contract.");
         // This catches out of bounds solidity error
         require(workers[msg.sender].length != 0, "UNAUTHORIZED");
         // This catches deauthorized but priorly authorized users
@@ -84,18 +85,37 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkersMultiSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _workerIndexes, uint256 _units) external payable onlyAuthorized {
+    // TODO Add tracking to this function as well
+    function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _totalValues, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
+        address[] memory workersCache = workers[msg.sender];
+
+        // data structure: _data[workerIndex][callIndex]
+        // data structure: _values[workerIndex][callIndex]
+
+        for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
+            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCalls{value: _totalValues[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
+        }
+    }
+
+    // TODO Add tracking to this function (reminder that tracking here can be unique to each worker because each worker could be doing different transactions)
+    function callWorkersCustom(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
+        address[] memory workersCache = workers[msg.sender];
+
+        for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
+            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall{value: _values[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
+        }
+    }
+
+    // This function is at the stack limit - no more local variables can be added (because of that, costs about 800 more gas per iteration)
+    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 totalValue, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        address[] memory workersCache = workers[msg.sender];
+        for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
+            if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
+            uint256 successes = IWorker(workers[msg.sender][workerIndex + 1]).forwardCalls{value: totalValue}(_target, _data, _values);
 
-        for (uint256 workerIndex = 0; workerIndex < _workerIndexes.length; workerIndex++) {
-            for (uint256 dataIndex; dataIndex < _data[workerIndex].length; dataIndex++) {
-                if (_units == 0 && allowance[allowanceHash] != 0 && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-                bool success = IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall(_target, _data[workerIndex][dataIndex], _values[workerIndex][dataIndex]);
-                if (_units == 0 && success) successfulCalls++;
-            }
+            if (_trackMints) successfulCalls += successes;
         }
 
         if (_units == 0 && allowance[allowanceHash] != 0) {
@@ -104,25 +124,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkersMulti(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256[] calldata _workerIndexes, uint256 _units) external payable onlyAuthorized {
-        uint256 successfulCalls;
-        bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
-
-        address[] memory workersCache = workers[msg.sender];
-
-        for (uint256 workerIndex = 0; workerIndex < _workerIndexes.length; workerIndex++) {
-            if (_units == 0 && allowance[allowanceHash] != 0 && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            bool success = IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall(_target, _data[workerIndex], _values[workerIndex]);
-            if (_units == 0 && success) successfulCalls++;
-        }
-
-        if (_units == 0 && allowance[allowanceHash] != 0) {
-            uint256 increments = successfulCalls * _units;
-            exhausted[allowanceHash] += increments;
-        }
-    }
-
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
@@ -140,10 +142,14 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function withdrawFromWorkers(uint256[] calldata _workerIndexes) external onlyAuthorized {
+    function withdrawFromWorkers(uint256[] calldata _workerIndexes, address payable withdrawTo) external onlyAuthorized {
         for(uint256 i = 0; i < _workerIndexes.length; i++){
-            IWorker(workers[msg.sender][_workerIndexes[i]]).withdraw();
+            IWorker(workers[msg.sender][_workerIndexes[i]]).withdraw(withdrawTo);
         }
+    }
+
+    function withdrawFromController() external onlyOwner {
+        payable(tx.origin).transfer(address(this).balance);
     }
 
     // This is called off-chain

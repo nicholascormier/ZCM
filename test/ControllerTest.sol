@@ -19,35 +19,34 @@ import "./Shared.sol";
 
 contract ControllerTest is Test, Shared {
 
+    // Variable storing the address of the controller logic contract
     Controller controller_logic = new Controller();
 
+    // Proxy management variables
     ProxyController controller_proxy;
     ProxyAdmin controller_admin;
 
+    // Variable storing test_
     address test_user = vm.addr(3493847394);
 
     ProxyTester proxy = new ProxyTester();
     address payable proxy_address;
     address admin;
-    Mock721 NFT;
+
+    Mock721 NFT = new Mock721();
+    Mock1155 NFT2 = new Mock1155();
+
+    bytes[] data;
+    bytes[][] recursiveData;
+    uint256[] values;
+    uint256[][] recursiveValues;
+    uint256[] recursiveTotalValues;
+    uint256[] workerIndexes;
 
     function setUp() external {
         // shared
         _devDeployBase();
         _deployProxySetup();
-        //_deployWorkers();
-    }
-
-    function _deployWorkers() internal {
-        NFT = new Mock721();
-        console.log(proxy_address);
-        console.log(zenith_deployer);
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
-        vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(250);
-        vm.stopPrank();
     }
 
     function _deployProxySetup() internal {
@@ -173,7 +172,7 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).authorizeCaller(test_user);
 
         vm.prank(test_user);
-        Controller(proxy_address).withdrawFromWorkers(ww);
+        Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
     }
 
     // saves some lines.
@@ -183,7 +182,7 @@ contract ControllerTest is Test, Shared {
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(1);
-        Controller(proxy_address).withdrawFromWorkers(ww);
+        Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
         vm.stopPrank();
 
         vm.prank(zenith_deployer);
@@ -192,21 +191,29 @@ contract ControllerTest is Test, Shared {
         vm.expectRevert();
 
         vm.prank(test_user);
-        Controller(proxy_address).withdrawFromWorkers(ww);
+        Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
     }
 
-    function test721Mint() external {
-        Mock721 NFT = new Mock721();
+    function _mintTestSetup() internal {
+        _mintTestSetup(1);
+    }
+
+    function _mintTestSetup(uint256 workerCount) internal {
+        NFT = new Mock721();
+        NFT2 = new Mock1155();
         vm.prank(zenith_deployer);
         Controller(proxy_address).authorizeCaller(test_user);
 
         vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(1);
+        Controller(proxy_address).createWorkers(workerCount);
+        vm.stopPrank();
+    }
 
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = 1;
+    function testCallWorkers721() external {
+        _mintTestSetup();
 
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0);
+        vm.prank(test_user);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -214,41 +221,104 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[1]) == 1);
     }
 
-    function test1155Mint() external {
-        Mock1155 NFT = new Mock1155();
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
-        vm.startPrank(test_user);
-        Controller(proxy_address).createWorkers(1);
-
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = 1;
-
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0);
-        vm.stopPrank();
+    function testCallWorkersSequential721() external {
+        _mintTestSetup();
         
-        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
-        
-        assertTrue(NFT.balanceOf(workers[1], 0) == 1);
-    }
-
-    function testValues() external {
-        console.log(proxy_address);
-    }
-
-    /*function testGasCosts() external {
         vm.startPrank(test_user);
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 250, false, 0);
-        vm.stopPrank();
+        vm.deal(test_user, 100 ether);
 
-        //console.log(address(controller_logic), "proxy addy");
-
+        Controller controller = Controller(proxy_address);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
 
-        //workers[1].call(abi.encodeWithSignature("getBasicResponse()"));
+        data = [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", workers[1], test_user, 1)];
+        values = [0.01 ether, uint256(0)];
 
+        controller.callWorkersSequential{value: 0.01 ether}(address(NFT), data, values, 0.01 ether, 1, false, 0);
+
+        vm.stopPrank();
+
+        assertTrue(NFT.balanceOf(test_user) == 1);
+    }
+
+    function testCallWorkersCustom721() external {
+        _mintTestSetup(2);
+        
+        vm.startPrank(test_user);
+        vm.deal(test_user, 100 ether);
+
+        Controller controller = Controller(proxy_address);
+
+        data = [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("mint(uint256)", 5)];
+        values = [uint256(0.01 ether), uint256(0)];
+        workerIndexes = [1, 2];
+
+        //controller.callWorkersCustom(address(NFT), data, values, workers, false, 0);
+        controller.callWorkersCustom{value: 0.01 ether}(address(NFT), data, values, workerIndexes);
+
+        vm.stopPrank();
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         assertTrue(NFT.balanceOf(workers[1]) == 1);
-    }*/
+        assertTrue(NFT.balanceOf(workers[2]) == 5);
+    }
+
+    function testCallWorkersCustomSequential721() external {
+        _mintTestSetup(2);
+        
+        vm.startPrank(test_user);
+        vm.deal(test_user, 100 ether);
+
+        Controller controller = Controller(proxy_address);
+
+        recursiveData = [[abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint(uint256)", 5)], [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("mint()")]];
+        recursiveValues = [[uint256(0), uint256(0)], [0.01 ether, uint256(0)]];
+        recursiveTotalValues = [uint256(0), 0.01 ether];
+        workerIndexes = [1, 2];
+
+        //controller.callWorkersCustoSequential(address(NFT), data, values, workers, false, 0);
+        controller.callWorkersCustomSequential{value: 0.01 ether}(address(NFT), recursiveData, recursiveValues, recursiveTotalValues, workerIndexes);
+
+        vm.stopPrank();
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        assertTrue(NFT.balanceOf(workers[1]) == 6);
+        assertTrue(NFT.balanceOf(workers[2]) == 2);
+    }
+
+    // Only 1155 test - if all the 721 tests worked, and this one passes, all the 1155 tests should work.
+    function testCallWorkers1155() external {
+        _mintTestSetup();
+        vm.startPrank(test_user);
+
+        Controller controller = Controller(proxy_address);
+
+        controller.callWorkers(address(NFT2), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        vm.stopPrank();
+        
+        address[] memory workers = controller.getWorkers(test_user);
+        
+        assertTrue(NFT2.balanceOf(workers[1], 0) == 1);
+    }
+
+    function testWithdrawFromWorker() external {
+        _mintTestSetup();
+
+        vm.startPrank(test_user);
+
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+
+        vm.deal(test_user, 1 ether);
+        workers[1].call{value: 1 ether}(abi.encodeWithSignature("testPayment()"));
+
+        assertTrue(workers[1].balance == 1 ether);
+        
+        workerIndexes = [1];
+
+        Controller(proxy_address).withdrawFromWorkers(workerIndexes, payable(test_user));
+        // tx.origin is not a known address - figure out vm cheat code
+        // address does not have any excess eth for some reason
+        assertTrue(test_user.balance == 1 ether);
+        vm.stopPrank();
+    }
 
 }

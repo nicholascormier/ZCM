@@ -9,6 +9,6 @@ contract ImplTwo {
     }
 
     function workerTest(address _worker) external {
-        Worker(_worker).withdraw();
+        Worker(_worker).withdraw(payable(msg.sender));
     }
 }
