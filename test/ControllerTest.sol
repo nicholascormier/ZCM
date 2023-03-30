@@ -213,7 +213,7 @@ contract ControllerTest is Test, Shared {
         _mintTestSetup();
 
         vm.prank(test_user);
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0);
         vm.stopPrank();
         
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -233,7 +233,7 @@ contract ControllerTest is Test, Shared {
         data = [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", workers[1], test_user, 1)];
         values = [0.01 ether, uint256(0)];
 
-        controller.callWorkersSequential{value: 0.01 ether}(address(NFT), data, values, 0.01 ether, 1, false, 0);
+        controller.callWorkersSequential{value: 0.01 ether}(address(NFT), data, values, 0.01 ether, 1);
 
         vm.stopPrank();
 
@@ -292,12 +292,25 @@ contract ControllerTest is Test, Shared {
 
         Controller controller = Controller(proxy_address);
 
-        controller.callWorkers(address(NFT2), abi.encodeWithSignature("mint()"), 0, 1, false, 0);
+        controller.callWorkers(address(NFT2), abi.encodeWithSignature("mint()"), 0, 1, 0);
         vm.stopPrank();
         
         address[] memory workers = controller.getWorkers(test_user);
         
         assertTrue(NFT2.balanceOf(workers[1], 0) == 1);
+    }
+
+    function testAllowances() external {
+        _mintTestSetup(2);
+
+        vm.startPrank(test_user);
+        Controller(proxy_address).createAllowance(address(NFT), 1);
+
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 2, 2);
+
+        vm.stopPrank();
+
+        assertTrue(NFT.balanceOf(test_user) == 1);
     }
 
     function testWithdrawFromWorker() external {

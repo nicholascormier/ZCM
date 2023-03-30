@@ -107,36 +107,27 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     // This function is at the stack limit - no more local variables can be added (because of that, costs about 800 more gas per iteration)
-    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 totalValue, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
-        uint256 successfulCalls;
-        bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
+    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 totalValue, uint256 workerCount) external payable onlyAuthorized {
+        address[] memory workersCache = workers[msg.sender];
 
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
-            if (_trackMints && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
-            uint256 successes = IWorker(workers[msg.sender][workerIndex + 1]).forwardCalls{value: totalValue}(_target, _data, _values);
-
-            if (_trackMints) successfulCalls += successes;
-        }
-
-        if (_units == 0 && allowance[allowanceHash] != 0) {
-            uint256 increments = successfulCalls * _units;
-            exhausted[allowanceHash] += increments;
+            IWorker(workersCache[workerIndex + 1]).forwardCalls{value: totalValue}(_target, _data, _values);
         }
     }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, bool _trackMints, uint256 _units) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units) external payable onlyAuthorized {
         uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         address[] memory workersCache = workers[msg.sender];
 
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
-            if (_units == 0 && allowance[allowanceHash] != 0 && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
+            if (_units != 0 && allowance[allowanceHash] != 0 && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
             bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
-            if (_units == 0 && success) successfulCalls++;
+            if (_units != 0 && success) successfulCalls++;
         }
 
-        if (_units == 0 && allowance[allowanceHash] != 0) {
+        if (_units != 0 && allowance[allowanceHash] != 0) {
             uint256 increments = successfulCalls * _units;
             exhausted[allowanceHash] += increments;
         }
