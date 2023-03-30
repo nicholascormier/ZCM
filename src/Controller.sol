@@ -25,7 +25,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // include in live deployments
-        // if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
+        if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
         _disableInitializers();
     }
 
@@ -35,7 +35,7 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     modifier onlyAuthorized {
         // implement on deployment. always reverts within foundry
-        // require(msg.sender == tx.origin, "Not callable from contract.");
+        require(msg.sender == tx.origin, "Not callable from contract.");
         // This catches out of bounds solidity error
         require(workers[msg.sender].length != 0, "UNAUTHORIZED");
         // This catches deauthorized but priorly authorized users
