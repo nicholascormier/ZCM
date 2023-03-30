@@ -87,30 +87,32 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     // TODO Add tracking to this function as well
     function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _totalValues, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
-        address[] memory workersCache = workers[msg.sender];
+        address[] storage workersCache = workers[msg.sender];
 
         // data structure: _data[workerIndex][callIndex]
         // data structure: _values[workerIndex][callIndex]
 
-        for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
+        uint256 indexesLength = _workerIndexes.length;
+        for (uint256 workerIndex; workerIndex < indexesLength; workerIndex = unchecked_inc(workerIndex)) {
             IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCalls{value: _totalValues[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
         }
     }
 
     // TODO Add tracking to this function (reminder that tracking here can be unique to each worker because each worker could be doing different transactions)
     function callWorkersCustom(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
-        address[] memory workersCache = workers[msg.sender];
+        address[] storage workersCache = workers[msg.sender];
 
-        for (uint256 workerIndex; workerIndex < _workerIndexes.length; workerIndex++) {
+        uint256 indexesLength = _workerIndexes.length;
+        for (uint256 workerIndex; workerIndex < indexesLength; workerIndex = unchecked_inc(workerIndex)) {
             IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall{value: _values[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
         }
     }
 
     // This function is at the stack limit - no more local variables can be added (because of that, costs about 800 more gas per iteration)
     function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 totalValue, uint256 workerCount) external payable onlyAuthorized {
-        address[] memory workersCache = workers[msg.sender];
+        address[] storage workersCache = workers[msg.sender];
 
-        for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
+        for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
             IWorker(workersCache[workerIndex + 1]).forwardCalls{value: totalValue}(_target, _data, _values);
         }
     }
@@ -121,12 +123,16 @@ contract Controller is Initializable, OwnableUpgradeable {
         uint256 minted = exhausted[allowanceHash];
         uint256 allowance = allowance[allowanceHash];
 
-        address[] memory workersCache = workers[msg.sender];
+        address[] storage workersCache = workers[msg.sender];
 
-        for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
+        for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
             if (_units != 0 && allowance != 0 && (minted >= allowance)) break;
             bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
-            if (_units != 0 && success) minted += _units;
+            if (_units != 0 && success) {
+                unchecked {
+                    minted += _units;
+                }
+            }
         }
 
         if (_units != 0 && allowance != 0) {
@@ -158,6 +164,12 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     fallback() external {
         revert();
+    }
+
+    function unchecked_inc(uint i) private returns (uint) {
+        unchecked {
+            return i + 1;
+        }
     }
 
 }
