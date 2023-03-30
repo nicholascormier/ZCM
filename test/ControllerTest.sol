@@ -304,13 +304,18 @@ contract ControllerTest is Test, Shared {
         _mintTestSetup(2);
 
         vm.startPrank(test_user);
-        Controller(proxy_address).createAllowance(address(NFT), 1);
+        Controller controller = Controller(proxy_address);
 
-        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 2, 2);
+        address[] memory workers = controller.getWorkers(test_user);
+        controller.createAllowance(address(NFT), 1);
+
+        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 2, 1);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 2, 1);
 
         vm.stopPrank();
 
-        assertTrue(NFT.balanceOf(test_user) == 1);
+        assertTrue(NFT.balanceOf(workers[1]) == 1);
+        assertTrue(NFT.balanceOf(workers[2]) == 0);
     }
 
     function testWithdrawFromWorker() external {

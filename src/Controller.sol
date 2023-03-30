@@ -116,21 +116,25 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units) external payable onlyAuthorized {
-        uint256 successfulCalls;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
+
+        uint256 minted = exhausted[allowanceHash];
+        uint256 allowance = allowance[allowanceHash];
 
         address[] memory workersCache = workers[msg.sender];
 
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
-            if (_units != 0 && allowance[allowanceHash] != 0 && (exhausted[allowanceHash] == allowance[allowanceHash])) return;
+            if (_units != 0 && allowance != 0 && (minted >= allowance)) break;
             bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
-            if (_units != 0 && success) successfulCalls++;
+            if (_units != 0 && success) minted += _units;
         }
 
-        if (_units != 0 && allowance[allowanceHash] != 0) {
-            uint256 increments = successfulCalls * _units;
-            exhausted[allowanceHash] += increments;
+        if (_units != 0 && allowance != 0) {
+            exhausted[allowanceHash] = minted;
         }
+
+        // I think this reclaims some gas
+        minted = 0;
     }
 
     function withdrawFromWorkers(uint256[] calldata _workerIndexes, address payable withdrawTo) external onlyAuthorized {
