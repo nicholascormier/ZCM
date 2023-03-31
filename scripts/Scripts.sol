@@ -57,7 +57,7 @@ contract CallWorkers is Script, Setup {
     function run() public {
         MockNFT nft = MockNFT(0x8362985873aC1A7E86bcaD2BFfC808526E1717D8);
         vm.startBroadcast();
-        controller.callWorkers(address(nft), abi.encodeWithSignature("mintFree(uint256)", 1), 0, 50, 0);
+        controller.callWorkers(address(nft), abi.encodeWithSignature("mintFree(uint256)", 2), 0, 100, 0);
         vm.stopBroadcast();
     }
 
