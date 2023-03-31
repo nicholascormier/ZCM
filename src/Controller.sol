@@ -119,6 +119,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units) external payable onlyAuthorized {
+        uint256 startingGas = gasleft();
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         uint256 minted = exhausted[allowanceHash];
