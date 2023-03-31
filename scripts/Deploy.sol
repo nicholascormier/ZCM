@@ -6,12 +6,10 @@ import "../lib/forge-std/src/console.sol";
 
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "../lib/foundry-upgrades/src/ProxyTester.sol";
 
 import "../src/Controller.sol";
 import "../src/ProxyController.sol";
 import "../src/Worker.sol";
-
 
 contract Deploy is Script {
 
@@ -28,8 +26,7 @@ contract Deploy is Script {
         // Then, the controller logic
         Controller controller_logic = new Controller();
         // Finally, the upgradeable proxy
-        bytes memory _data;
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(controller_logic), address(proxy_admin), _data);
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(controller_logic), address(proxy_admin), "");
 
         address payable controller_proxy_address = payable(address(proxy));
         address controller_logic_address = address(controller_logic);
@@ -39,17 +36,10 @@ contract Deploy is Script {
         address worker_logic_address = address(worker_logic);
         Controller(controller_proxy_address).setWorkerTemplate(worker_logic_address);
 
-        console.log("Controller proxy address:");
-        console.log(controller_proxy_address);
-        console.log("");
-
-        console.log("Controller logic address:");
-        console.log(controller_logic_address);
-        console.log("");
-
-        console.log("Worker proxy address:");
-        console.log(worker_logic_address);
-        console.log("");
+        console.log("Proxy admin:", address(proxy_admin));
+        console.log("Proxy address:", address(proxy));
+        console.log("Controller logic address:", address(controller_logic));
+        console.log("Worker address:", address(worker_logic));
 
         vm.stopBroadcast();
     }
