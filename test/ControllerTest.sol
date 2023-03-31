@@ -318,6 +318,26 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[2]) == 0);
     }
 
+    function testGasCosts() external {
+        NFT = new Mock721();
+
+        vm.startPrank(NFT.owner());
+        NFT.setMintActive(true);
+        NFT.setMintLimit(1);
+        vm.stopPrank();
+
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCaller(test_user);
+
+        vm.startPrank(test_user);
+        Controller(proxy_address).createWorkers(250);
+
+        Controller controller = Controller(proxy_address);
+
+        controller.callWorkers(address(NFT), abi.encodeWithSignature("mintFree(uint256)", 1), 0, 50, 0);
+        vm.stopPrank();
+    }
+
     function testWithdrawFromWorker() external {
         _mintTestSetup();
 

@@ -12,6 +12,7 @@ interface IWorker {
 }
 
 import "../lib/forge-std/src/Test.sol";
+import "../lib/forge-std/src/console.sol";
 
 // Deployed by us
 contract Controller is Initializable, OwnableUpgradeable {
@@ -118,6 +119,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units) external payable onlyAuthorized {
+        uint256 startingGas = gasleft();
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         uint256 minted = exhausted[allowanceHash];
@@ -141,6 +143,7 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         // I think this reclaims some gas
         minted = 0;
+        console.log("gas used: ", startingGas - gasleft());
     }
 
     function withdrawFromWorkers(uint256[] calldata _workerIndexes, address payable withdrawTo) external onlyAuthorized {
