@@ -8,6 +8,7 @@ import "../src/ProxyController.sol";
 import "../src/Worker.sol";
 
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import "../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "../lib/foundry-upgrades/src/ProxyTester.sol";
 
 // composable shared test setup
@@ -30,11 +31,10 @@ abstract contract Shared is Test {
         controller_logic = address(controller);
 
         // Set up ProxyAdmin and DelegateProxy
-        admin = vm.addr(69);
+        admin = address(new ProxyAdmin());
+        proxy_address = payable(address(new TransparentUpgradeableProxy(address(controller), admin, "")));
 
-        proxy.setType("uups");
-        proxy_address = payable(proxy.deploy(address(controller_logic), admin));
-
+        // Make sure the proxy is pointing to the controller
         bytes32 implSlot = bytes32(
             uint256(keccak256("eip1967.proxy.implementation")) - 1
         );
@@ -47,6 +47,7 @@ abstract contract Shared is Test {
 
         assertEq(address(controller_logic), addr);
 
+        // Initialize the controller
         Controller(proxy_address).initialize();
 
         // Set up worker and controller

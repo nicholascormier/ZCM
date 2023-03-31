@@ -13,6 +13,7 @@ import "./samples/MockImplementationOne.sol";
 import "./samples/MockImplementationTwo.sol";
 
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import "../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "../lib/foundry-upgrades/src/ProxyTester.sol";
 
 import "./Shared.sol";
@@ -39,39 +40,17 @@ contract ControllerTest is Test, Shared {
     function setUp() external {
         // shared
         _devDeployBase();
-        //_deployProxySetup();
-    }
-
-    function _deployProxySetup() internal {
-        vm.startPrank(zenith_deployer);
-        admin = vm.addr(69);
-
-        proxy.setType("uups");
-        proxy_address = payable(proxy.deploy(address(controller_logic), admin));
-
-        bytes32 implSlot = bytes32(
-            uint256(keccak256("eip1967.proxy.implementation")) - 1
-        );
-        bytes32 proxySlot = vm.load(proxy_address, implSlot);
-        address addr;
-        assembly {
-            mstore(0, proxySlot)
-            addr := mload(0)
-        }
-
-        assertEq(address(controller_logic), addr);
-
-        Controller(proxy_address).initialize();
-        Controller(proxy_address).setWorkerTemplate(address(worker_implementation));
-
-        vm.stopPrank();
     }
 
     // this is not really testing anything :)
     function testUpgradeProxy() public {
-        vm.prank(zenith_deployer);
+        vm.startPrank(zenith_deployer);
+        ProxyAdmin proxyAdmin = ProxyAdmin(admin);
+
         Controller newImpl = new Controller();
-        proxy.upgrade(address(newImpl), admin, address(0));
+
+        proxyAdmin.upgrade(TransparentUpgradeableProxy(proxy_address), address(newImpl));
+        
         bytes32 implSlot = bytes32(
             uint256(keccak256("eip1967.proxy.implementation")) - 1
         );
@@ -82,6 +61,7 @@ contract ControllerTest is Test, Shared {
             addr := mload(0)
         }
         assertEq(address(newImpl), addr);
+        vm.stopPrank();
     }
 
     function testAuthorizeUser() external {
