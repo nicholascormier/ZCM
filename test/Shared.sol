@@ -4,18 +4,54 @@ pragma solidity ^0.8.0;
 import "../lib/forge-std/src/Test.sol";
 
 import "../src/Controller.sol";
+import "../src/ProxyController.sol";
 import "../src/Worker.sol";
+
+import "../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import "../lib/foundry-upgrades/src/ProxyTester.sol";
 
 // composable shared test setup
 abstract contract Shared is Test {
 
     address zenith_deployer = vm.addr(3902934);
     Worker worker_implementation;
+    ProxyTester proxy = new ProxyTester();
+
+    address payable proxy_address;
+    address controller_logic;
+    address admin;
 
     // configures on-chain dependencies.
     function _devDeployBase() internal {
         vm.startPrank(zenith_deployer);
-        worker_implementation = new Worker{salt: ""}(0xffD4505B3452Dc22f8473616d50503bA9E1710Ac);
+
+        // Create the controller
+        Controller controller = new Controller();
+        controller_logic = address(controller);
+
+        // Set up ProxyAdmin and DelegateProxy
+        admin = vm.addr(69);
+
+        proxy.setType("uups");
+        proxy_address = payable(proxy.deploy(address(controller_logic), admin));
+
+        bytes32 implSlot = bytes32(
+            uint256(keccak256("eip1967.proxy.implementation")) - 1
+        );
+        bytes32 proxySlot = vm.load(proxy_address, implSlot);
+        address addr;
+        assembly {
+            mstore(0, proxySlot)
+            addr := mload(0)
+        }
+
+        assertEq(address(controller_logic), addr);
+
+        Controller(proxy_address).initialize();
+
+        // Set up worker and controller
+        worker_implementation = new Worker{salt: ""}(proxy_address);
+        Controller(proxy_address).setWorkerTemplate(address(worker_implementation));
         vm.stopPrank();
     }
 

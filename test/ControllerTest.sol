@@ -19,19 +19,12 @@ import "./Shared.sol";
 
 contract ControllerTest is Test, Shared {
 
-    // Variable storing the address of the controller logic contract
-    Controller controller_logic = new Controller();
-
-    // Proxy management variables
-    ProxyController controller_proxy;
-    ProxyAdmin controller_admin;
-
     // Variable storing test_
     address test_user = vm.addr(3493847394);
 
-    ProxyTester proxy = new ProxyTester();
-    address payable proxy_address;
-    address admin;
+    //ProxyTester proxy = new ProxyTester();
+    //address payable proxy_address;
+    //address admin;
 
     Mock721 NFT = new Mock721();
     Mock1155 NFT2 = new Mock1155();
@@ -46,7 +39,7 @@ contract ControllerTest is Test, Shared {
     function setUp() external {
         // shared
         _devDeployBase();
-        _deployProxySetup();
+        //_deployProxySetup();
     }
 
     function _deployProxySetup() internal {

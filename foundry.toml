@@ -4,5 +4,6 @@ out = 'out'
 libs = ['lib']
 optimizer = true
 optimizer_runs = 1000
+ignored_error_codes = ["unreachable", "unused-return", "unused-param", "unused-var", "code-size", "shadowing", "func-mutability", "license", "pragma-solidity", "virtual-interfaces", "same-varname"]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
