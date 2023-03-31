@@ -11,16 +11,21 @@ interface IProxyBeacon {
 
 // Deployed by us, serves as template for proxies
 contract Worker {
+    address private immutable owner;
+
+    constructor(address _owner) {
+        owner = _owner;
+    }
 
     modifier onlyOwner{
-        require(0xffD4505B3452Dc22f8473616d50503bA9E1710Ac == msg.sender, "Not owner");
+        require(owner == msg.sender, "Not owner");
         //require(0x9cC6334F1A7Bc20c9Dde91Db536E194865Af0067 == msg.sender, "Not owner");
         _;
     }
     
-    function getOwner() external pure returns(address) {
+    function getOwner() external view returns(address) {
         //return 0x9cC6334F1A7Bc20c9Dde91Db536E194865Af0067;
-        return 0xffD4505B3452Dc22f8473616d50503bA9E1710Ac;
+        return owner;
     }
 
     function withdraw(address payable withdrawTo) external onlyOwner {
