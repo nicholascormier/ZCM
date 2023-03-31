@@ -12,6 +12,7 @@ interface IWorker {
 }
 
 import "../lib/forge-std/src/Test.sol";
+import "../lib/forge-std/src/console.sol";
 
 // Deployed by us
 contract Controller is Initializable, OwnableUpgradeable {
