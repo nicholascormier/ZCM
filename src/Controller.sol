@@ -118,7 +118,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         uint256 minted = exhausted[allowanceHash];
@@ -128,11 +128,14 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
             if (_units != 0 && allowance != 0 && (minted >= allowance)) break;
-            bool success = IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value);
-            if (_units != 0 && success) {
-                unchecked {
-                    minted += _units;
+            if(IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value)){
+                if(_units != 0){
+                    unchecked {
+                        minted += _units;
+                    }
                 }
+            }else{
+                if(_stopOnFailure) break;
             }
         }
 
@@ -144,7 +147,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         minted = 0;
     }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, uint256 _loops) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, uint256 _loops, bool _stopOnFailure) external payable onlyAuthorized {
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         uint256 minted = exhausted[allowanceHash];
@@ -155,10 +158,14 @@ contract Controller is Initializable, OwnableUpgradeable {
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
             for(uint256 currentLoop; currentLoop < _loops; currentLoop = unchecked_inc(currentLoop)){
                 if (_units != 0 && allowance != 0 && (minted >= allowance)) break;
-                if (IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value) && _units != 0) {
-                    unchecked {
-                        minted += _units;
+                if(IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value)){
+                    if(_units != 0){
+                        unchecked {
+                            minted += _units;
+                        }
                     }
+                }else{
+                    if(_stopOnFailure) break;
                 }
             }
             
