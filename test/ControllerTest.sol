@@ -194,6 +194,18 @@ contract ControllerTest is Test, Shared {
         assertTrue(NFT.balanceOf(workers[1]) == 1);
     }
 
+    function testCallWorkers721Loop() external {
+        _mintTestSetup();
+
+        vm.prank(test_user);
+        Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0, 2);
+        vm.stopPrank();
+        
+        address[] memory workers = Controller(proxy_address).getWorkers(test_user);
+        
+        assertTrue(NFT.balanceOf(workers[1]) == 2);
+    }
+
     function testCallWorkersSequential721() external {
         _mintTestSetup();
         
