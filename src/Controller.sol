@@ -50,18 +50,22 @@ contract Controller is Initializable, OwnableUpgradeable {
         if (address(this).balance > 0) payable(msg.sender).transfer(address(this).balance);
     }
 
-    function authorizeCaller(address _user) external onlyOwner {
-        if(workers[_user].length == 0){
-            workers[_user] = [_user];
-        }else{
-            workers[_user][0] = _user;
+    function authorizeCaller(address[] _users) external onlyOwner {
+        for (uint256 i; i < _users.length; i++) {
+            if(workers[_users[i]].length == 0){
+                workers[_users[i]] = [_users[i]];
+            }else{
+                workers[_users[i]][0] = _users[i];
+            }
         }
     }
 
-    function deauthorizeCaller(address _user) external onlyOwner {
-        // Set the user's first index to zero so if they are re-added their contracts still exist
-        require(workers[_user].length > 0, "User does not exist");
-        workers[_user][0] = address(0);
+    function deauthorizeCallers(address[] _users) external onlyOwner {
+        for (uint256 i; i < _users.length; i++) {
+            // Set the user's first index to zero so if they are re-added their contracts still exist
+            require(workers[_users[i]].length > 0, "User does not exist");
+            workers[_users[i]][0] = address(0);
+        }
     }
 
     function setWorkerTemplate(address _worker) external onlyOwner {
