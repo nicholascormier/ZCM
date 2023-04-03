@@ -67,7 +67,9 @@ contract ControllerTest is Test, Shared {
 
     function testAuthorizeUser() external {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
@@ -75,13 +77,15 @@ contract ControllerTest is Test, Shared {
 
     function testDeauthorizeUser() external {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
 
         vm.prank(zenith_deployer);
-        Controller(proxy_address).deauthorizeCaller(test_user);
+        Controller(proxy_address).deauthorizeCallers(users);
 
         vm.expectRevert();
         vm.prank(test_user);
@@ -95,7 +99,9 @@ contract ControllerTest is Test, Shared {
 
     function testAuthorizedCaller() external {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
@@ -103,7 +109,9 @@ contract ControllerTest is Test, Shared {
 
     function testWorkerCreation() external {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
@@ -114,7 +122,9 @@ contract ControllerTest is Test, Shared {
 
     function testWorkerForwarding() external {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
@@ -126,7 +136,9 @@ contract ControllerTest is Test, Shared {
 
     function testWorkerDirectAccess() external {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
@@ -143,7 +155,9 @@ contract ControllerTest is Test, Shared {
     function testWorkerAccessReinstated() external {
         _workerAccess();
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.prank(test_user);
         Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
@@ -152,7 +166,9 @@ contract ControllerTest is Test, Shared {
     // saves some lines.
     function _workerAccess() internal {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(1);
@@ -160,7 +176,7 @@ contract ControllerTest is Test, Shared {
         vm.stopPrank();
 
         vm.prank(zenith_deployer);
-        Controller(proxy_address).deauthorizeCaller(test_user);
+        Controller(proxy_address).deauthorizeCallers(users);
 
         vm.expectRevert();
 
@@ -176,7 +192,9 @@ contract ControllerTest is Test, Shared {
         NFT = new Mock721();
         NFT2 = new Mock1155();
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        address[] memory users;
+        users[0] = test_user;
+        Controller(proxy_address).authorizeCallers(users);
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(workerCount);

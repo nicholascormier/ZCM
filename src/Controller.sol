@@ -50,7 +50,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         if (address(this).balance > 0) payable(msg.sender).transfer(address(this).balance);
     }
 
-    function authorizeCaller(address[] _users) external onlyOwner {
+    function authorizeCallers(address[] calldata _users) external onlyOwner {
         for (uint256 i; i < _users.length; i++) {
             if(workers[_users[i]].length == 0){
                 workers[_users[i]] = [_users[i]];
@@ -60,7 +60,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function deauthorizeCallers(address[] _users) external onlyOwner {
+    function deauthorizeCallers(address[] calldata _users) external onlyOwner {
         for (uint256 i; i < _users.length; i++) {
             // Set the user's first index to zero so if they are re-added their contracts still exist
             require(workers[_users[i]].length > 0, "User does not exist");
