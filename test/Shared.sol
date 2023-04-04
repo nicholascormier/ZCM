@@ -21,6 +21,19 @@ abstract contract Shared is Test {
     address payable proxy_address;
     address controller_logic;
     address admin;
+    address test_user = vm.addr(3493847394);
+
+    address[] authorizedCallers = [test_user, vm.addr(398798350)];
+
+    function _authorizeCallers() internal {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).authorizeCallers(authorizedCallers);
+    }
+
+    function _deauthorizeCallers() internal {
+        vm.prank(zenith_deployer);
+        Controller(proxy_address).deauthorizeCallers(authorizedCallers);
+    }
 
     // configures on-chain dependencies.
     function _devDeployBase() internal {
