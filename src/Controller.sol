@@ -123,6 +123,8 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
+        uint256 gasLeft = gasleft();
+        uint256 totalMintGas;
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         uint256 minted = exhausted[allowanceHash];
@@ -132,7 +134,9 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
             if (_units != 0 && allowance != 0 && (minted >= allowance)) break;
+            uint256 start = gasleft();
             if(IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value)){
+                totalMintGas += start - gasleft();
                 if(_units != 0){
                     unchecked {
                         minted += _units;
@@ -149,6 +153,8 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         // I think this reclaims some gas
         minted = 0;
+        console.log("gas burned:", gasLeft - gasleft());
+        console.log("gas used for minting:", totalMintGas);
     }
 
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, uint256 _loops, bool _stopOnFailure) external payable onlyAuthorized {

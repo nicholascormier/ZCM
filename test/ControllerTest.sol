@@ -293,4 +293,13 @@ contract ControllerTest is Test, Shared {
         vm.stopPrank();
     }
 
+    function testGasCosts() external {
+        _mintTestSetup(250);
+
+        Controller controller = Controller(proxy_address);
+
+        vm.prank(test_user);
+        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 100, 0, true);
+    }
+
 }
