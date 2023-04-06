@@ -9,6 +9,7 @@ import "../src/ProxyController.sol";
 import "../src/Worker.sol";
 
 import "../test/samples/MockNFT.sol";
+import "../test/samples/MechaPixels.sol";
 
 contract Setup {
     ProxyAdmin proxyAdmin = ProxyAdmin(0x41c2B7eA05f741a3f781fC64ddd997E169ee86c2);
@@ -57,8 +58,28 @@ contract CallWorkers is Script, Setup {
     function run() public {
         MockNFT nft = MockNFT(0x8362985873aC1A7E86bcaD2BFfC808526E1717D8);
         vm.startBroadcast();
-        controller.callWorkers(address(nft), abi.encodeWithSignature("mintFree(uint256)", 2), 0, 100, 0);
+        nft.setMintLimit(20);
+        controller.callWorkers(address(nft), abi.encodeWithSignature("mintFree(uint256)", 2), 0, 2, 0, true);
         vm.stopBroadcast();
     }
+}
 
+contract UpgradeController is Script, Setup {
+    function run() public {
+        vm.startBroadcast();
+        Controller newControllerLogic = new Controller();
+        proxyAdmin.upgrade(proxy, address(newControllerLogic));
+        vm.stopBroadcast();
+    }
+}
+
+contract DeployAndTestMecha is Script, Setup {
+    function run() public {
+        vm.startBroadcast();
+        MechaPixels mechaPixels = new MechaPixels();
+        mechaPixels.setPaused(false);
+
+        controller.callWorkers(address(mechaPixels), abi.encodeWithSignature("mint(uint256)", 1), 0, 100, 0, true);
+        vm.stopBroadcast();
+    }
 }
