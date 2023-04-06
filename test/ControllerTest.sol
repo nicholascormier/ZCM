@@ -21,13 +21,6 @@ import "./Shared.sol";
 
 contract ControllerTest is Test, Shared {
 
-    // Variable storing test_
-    address test_user = vm.addr(3493847394);
-
-    //ProxyTester proxy = new ProxyTester();
-    //address payable proxy_address;
-    //address admin;
-
     Mock721 NFT = new Mock721();
     Mock1155 NFT2 = new Mock1155();
 
@@ -41,6 +34,7 @@ contract ControllerTest is Test, Shared {
     function setUp() external {
         // shared
         _devDeployBase();
+        _authorizeCallers();
     }
 
     // this is not really testing anything :)
@@ -65,23 +59,11 @@ contract ControllerTest is Test, Shared {
         vm.stopPrank();
     }
 
-    function testAuthorizeUser() external {
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
-        vm.prank(test_user);
-        Controller(proxy_address).createWorkers(1);
-    }
-
     function testDeauthorizeUser() external {
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
 
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).deauthorizeCaller(test_user);
+        _deauthorizeCallers();
 
         vm.expectRevert();
         vm.prank(test_user);
@@ -93,18 +75,7 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).createWorkers(1);
     }
 
-    function testAuthorizedCaller() external {
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
-        vm.prank(test_user);
-        Controller(proxy_address).createWorkers(1);
-    }
-
     function testWorkerCreation() external {
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -113,9 +84,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testWorkerForwarding() external {
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -125,9 +93,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testWorkerDirectAccess() external {
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
         vm.prank(test_user);
         Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -142,41 +107,24 @@ contract ControllerTest is Test, Shared {
 
     function testWorkerAccessReinstated() external {
         _workerAccess();
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
+        _deauthorizeCallers();
 
+        vm.expectRevert();
         vm.prank(test_user);
         Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
     }
 
     // saves some lines.
     function _workerAccess() internal {
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
-
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(1);
         Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
         vm.stopPrank();
-
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).deauthorizeCaller(test_user);
-
-        vm.expectRevert();
-
-        vm.prank(test_user);
-        Controller(proxy_address).withdrawFromWorkers(ww, payable(test_user));
-    }
-
-    function _mintTestSetup() internal {
-        _mintTestSetup(1);
     }
 
     function _mintTestSetup(uint256 workerCount) internal {
         NFT = new Mock721();
         NFT2 = new Mock1155();
-        vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCaller(test_user);
 
         vm.startPrank(test_user);
         Controller(proxy_address).createWorkers(workerCount);
@@ -184,7 +132,7 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkers721() external {
-        _mintTestSetup();
+        _mintTestSetup(1);
 
         vm.prank(test_user);
         Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
@@ -196,7 +144,7 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkers721Loop() external {
-        _mintTestSetup();
+        _mintTestSetup(1);
 
         vm.prank(test_user);
         Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0, 2, false);
@@ -228,7 +176,7 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkersSequential721() external {
-        _mintTestSetup();
+        _mintTestSetup(1);
         
         vm.startPrank(test_user);
         vm.deal(test_user, 100 ether);
@@ -293,7 +241,7 @@ contract ControllerTest is Test, Shared {
 
     // Only 1155 test - if all the 721 tests worked, and this one passes, all the 1155 tests should work.
     function testCallWorkers1155() external {
-        _mintTestSetup();
+        _mintTestSetup(1);
         vm.startPrank(test_user);
 
         Controller controller = Controller(proxy_address);
@@ -325,7 +273,7 @@ contract ControllerTest is Test, Shared {
     }
 
     function testWithdrawFromWorker() external {
-        _mintTestSetup();
+        _mintTestSetup(1);
 
         vm.startPrank(test_user);
 
