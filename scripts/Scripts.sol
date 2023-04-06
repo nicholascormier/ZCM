@@ -10,6 +10,7 @@ import "../src/Worker.sol";
 
 import "../test/samples/MockNFT.sol";
 import "../test/samples/MechaPixels.sol";
+import "../test/samples/Nakamiga.sol";
 
 contract Setup {
     ProxyAdmin proxyAdmin = ProxyAdmin(0x41c2B7eA05f741a3f781fC64ddd997E169ee86c2);
@@ -21,9 +22,11 @@ contract Setup {
 
 contract AuthorizeCaller is Script, Setup{
 
+    address[] caller = [0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF];
+
     function run() public {
         vm.startBroadcast();
-        controller.authorizeCaller(0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF);
+        controller.authorizeCallers(caller);
         vm.stopBroadcast();
     }
 
@@ -80,6 +83,18 @@ contract DeployAndTestMecha is Script, Setup {
         mechaPixels.setPaused(false);
 
         controller.callWorkers(address(mechaPixels), abi.encodeWithSignature("mint(uint256)", 1), 0, 100, 0, true);
+        vm.stopBroadcast();
+    }
+}
+
+contract DeployAndTestNaka is Script, Setup {
+    function run() public {
+        vm.startBroadcast();
+        Nakamiga naka = new Nakamiga();
+        naka.togglePublicState();
+
+        controller.callWorkers(address(naka), abi.encodeWithSignature("mint(uint256)", 2), 0, 50, 0, true);
+
         vm.stopBroadcast();
     }
 }
