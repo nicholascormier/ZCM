@@ -48,8 +48,8 @@ contract DeployMockNFT is Script, Setup {
     function run() public {
         vm.startBroadcast();
         MockNFT mockNFT = new MockNFT();
-        mockNFT.setMintActive(true);
-        mockNFT.setMintLimit(1);
+        //mockNFT.setMintActive(true);
+        //mockNFT.setMintLimit(1);
         vm.stopBroadcast();
 
         console.log("Mock NFT:", address(mockNFT));
