@@ -9,6 +9,6 @@ contract ImplOne {
     }
 
     function workerTest(address _worker) external {
-        Worker(_worker).withdraw(payable(msg.sender));
+        Worker(payable(_worker)).withdraw(payable(msg.sender));
     }
 }

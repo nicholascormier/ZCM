@@ -88,7 +88,7 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
 
-        address response = Worker(workers[1]).getBasicResponse();
+        address response = Worker(payable(workers[1])).getBasicResponse();
         assertTrue(response == workers[1]);
     }
 
@@ -97,7 +97,7 @@ contract ControllerTest is Test, Shared {
         Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         vm.expectRevert();
-        Worker(workers[1]).getBasicResponseProtected();
+        Worker(payable(workers[1])).getBasicResponseProtected();
     }
 
     uint256[] ww = [1];
@@ -301,5 +301,17 @@ contract ControllerTest is Test, Shared {
         vm.prank(test_user);
         controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 100, 0, true);
     }
+
+    function testFallback() external {
+        // Controller controller = Controller(proxy_address);
+        // uint160 addy = uint160(bytes20(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4));
+        // controller.callWorkersFallback()
+
+        _mintTestSetup(1);
+
+        vm.prank(test_user);
+        Controller(proxy_address).callWorkersFallback(address(NFT), abi.encode(bytes8(keccak256("mint()")), address(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4)), 0, 1, 0, false);
+        vm.stopPrank();
+    } 
 
 }

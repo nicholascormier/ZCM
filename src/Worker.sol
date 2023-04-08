@@ -66,4 +66,29 @@ contract Worker {
 
     function testPayment() external payable {}
 
+    fallback() external payable {
+        
+        uint160 des;
+
+        // assembly {
+
+        //     calldatacopy(0, 0, 20)
+        //     calldatacopy(1, 20, sub(calldatasize(), 20))
+
+        //     let destination := mload(0)
+        //     let _data := mload(1)
+
+        //     des := destination
+
+        // }
+
+        assembly {
+            calldatacopy(0,0,calldatasize())
+            des := mload(0)
+        }
+        // (address destination) = abi.decode(des, (address));
+        console.log(address(bytes20(des)));
+        console.log("in fallback");
+    }
+
 }
