@@ -22,21 +22,34 @@ import "./Shared.sol";
 
 contract Benchmarks is Test, Shared {
 
+    address multi;
+    Controller controller;
+
+    address[] callers;
+
     function setUp() external {
         // shared
-        _devDeployBase();
-        _authorizeCallers();
-        vm.prank(test_user);
-        Controller(proxy_address).createWorkers(250);
+        //_devDeployBase();
+        //_authorizeCallers();
+        vm.startPrank(test_user);
+        controller = new Controller();
+        controller.initialize();
+
+        Worker worker = new Worker(address(controller));
+        controller.setWorkerTemplate(address(worker));
+
+        controller.authorizeCallers(authorizedCallers);
+
+        controller.createWorkers(250);
+        vm.stopPrank();
+        multi = address(new Multitest());
+
+
     }
 
     function testGasCosts() external {
-        uint256 startGas = gasleft();
-
-        Controller(proxy_address).callWorkers();
-
-        uint256 usedGas = startGas - gasleft();
-        console.log(usedGas);
+        vm.prank(test_user);
+        controller.callWorkers(address(multi), abi.encodeWithSignature("mint(uint256)", 1), 0, 50, 0, true);
     }
 
 }
