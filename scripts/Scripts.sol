@@ -11,6 +11,7 @@ import "../src/Worker.sol";
 import "../test/samples/MockNFT.sol";
 import "../test/samples/MechaPixels.sol";
 import "../test/samples/Nakamiga.sol";
+import "../test/samples/Multitest.sol";
 
 contract Setup {
     ProxyAdmin proxyAdmin = ProxyAdmin(0x41c2B7eA05f741a3f781fC64ddd997E169ee86c2);
@@ -95,6 +96,15 @@ contract DeployAndTestNaka is Script, Setup {
 
         controller.callWorkers(address(naka), abi.encodeWithSignature("mint(uint256)", 2), 0, 50, 0, true);
 
+        vm.stopBroadcast();
+    }
+}
+
+contract DeployAndTestAcid is Script, Setup {
+    function run() public {
+        vm.startBroadcast();
+        Multitest multi = new Multitest();
+        controller.callWorkers(address(multi), abi.encodeWithSignature("mint(uint256)", 1), 0, 50, 0, true);
         vm.stopBroadcast();
     }
 }
