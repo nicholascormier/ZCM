@@ -30,23 +30,6 @@ contract Worker is Test {
         return owner;
     }
 
-    function withdraw(address payable withdrawTo) external onlyOwner {
-        withdrawTo.transfer(address(this).balance);
-    }
-
-    function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {
-        (bool success,) = _target.call{value: _value}(_data);
-        return success;
-    }
-
-    function forwardCalls(address _target, bytes[] calldata _data, uint256[] calldata _values) external payable onlyOwner returns(uint256 successes) {
-        for(uint256 i = 0; i < _data.length; i++){
-            (bool success,) = _target.call{value: _values[i]}(_data[i]);
-            if(success) successes++;
-        }
-        return successes;
-    }
-
     // ERC721 safeMint compliance
     function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external pure returns(bytes4) {
         return 0x150b7a02;
@@ -66,9 +49,7 @@ contract Worker is Test {
         return address(this);
     }
 
-    function testPayment() external payable {}
-
-    fallback() external payable {
+    fallback() external payable onlyOwner {
 
         bytes20 destination;
         bytes32 cd;

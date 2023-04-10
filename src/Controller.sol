@@ -137,9 +137,10 @@ contract Controller is Initializable, OwnableUpgradeable {
         
         unchecked {
             for (uint256 workerIndex; workerIndex < workercount; workerIndex++) {
-                (bool success, bytes memory response) = address(IWorker(workersCache[workerIndex + 1])).call(workerdata);
-                console.log(success);
-                console.logBytes32(bytes32(response));
+                (bool success, ) = workersCache[workerIndex + 1].call(workerdata);
+                if(success == false && bypassfailures) {
+                    break;
+                }
             }
         }
     }

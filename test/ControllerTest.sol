@@ -6,6 +6,7 @@ import "../lib/forge-std/src/Test.sol";
 import "../src/Controller.sol";
 import "../src/ProxyController.sol";
 import "../src/Worker.sol";
+import "../src/EthSender.sol";
 
 import "./samples/Mock721.sol";
 import "./samples/Mock1155.sol";
@@ -23,6 +24,7 @@ contract ControllerTest is Test, Shared {
 
     Mock721 NFT = new Mock721();
     Mock1155 NFT2 = new Mock1155();
+    EthSender sender = new EthSender();
 
     bytes[] data;
     bytes[][] recursiveData;
@@ -35,6 +37,7 @@ contract ControllerTest is Test, Shared {
         // shared
         _devDeployBase();
         _authorizeCallers();
+        _mintTestSetup(250);
     }
 
     // this is not really testing anything :)
@@ -77,7 +80,6 @@ contract ControllerTest is Test, Shared {
 
     function testWorkerCreation() external {
         vm.prank(test_user);
-        Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         assertTrue(workers.length == 2);
         assertTrue(workers[0] == test_user);
@@ -85,7 +87,6 @@ contract ControllerTest is Test, Shared {
 
     function testWorkerForwarding() external {
         vm.prank(test_user);
-        Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
 
         address response = Worker(payable(workers[1])).getBasicResponse();
@@ -94,7 +95,6 @@ contract ControllerTest is Test, Shared {
 
     function testWorkerDirectAccess() external {
         vm.prank(test_user);
-        Controller(proxy_address).createWorkers(1);
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
         vm.expectRevert();
         Worker(payable(workers[1])).getBasicResponseProtected();
@@ -132,8 +132,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkers721() external {
-        _mintTestSetup(1);
-
         vm.prank(test_user);
         Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
         vm.stopPrank();
@@ -144,8 +142,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkers721Loop() external {
-        _mintTestSetup(1);
-
         vm.prank(test_user);
         Controller(proxy_address).callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0, 2, false);
         vm.stopPrank();
@@ -156,7 +152,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkersRevert() external {
-        _mintTestSetup(7);
 
         Mock721Revert NFT = new Mock721Revert();
 
@@ -176,8 +171,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkersSequential721() external {
-        _mintTestSetup(1);
-        
         vm.startPrank(test_user);
         vm.deal(test_user, 100 ether);
 
@@ -195,8 +188,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkersCustom721() external {
-        _mintTestSetup(2);
-        
         vm.startPrank(test_user);
         vm.deal(test_user, 100 ether);
 
@@ -217,8 +208,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testCallWorkersCustomSequential721() external {
-        _mintTestSetup(2);
-        
         vm.startPrank(test_user);
         vm.deal(test_user, 100 ether);
 
@@ -241,7 +230,6 @@ contract ControllerTest is Test, Shared {
 
     // Only 1155 test - if all the 721 tests worked, and this one passes, all the 1155 tests should work.
     function testCallWorkers1155() external {
-        _mintTestSetup(1);
         vm.startPrank(test_user);
 
         Controller controller = Controller(proxy_address);
@@ -255,8 +243,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testAllowances() external {
-        _mintTestSetup(2);
-
         vm.startPrank(test_user);
         Controller controller = Controller(proxy_address);
 
@@ -273,8 +259,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testWithdrawFromWorker() external {
-        _mintTestSetup(1);
-
         vm.startPrank(test_user);
 
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
@@ -294,8 +278,6 @@ contract ControllerTest is Test, Shared {
     }
 
     function testGasCosts() external {
-        _mintTestSetup(250);
-
         Controller controller = Controller(proxy_address);
 
         vm.prank(test_user);
@@ -306,9 +288,6 @@ contract ControllerTest is Test, Shared {
         // Controller controller = Controller(proxy_address);
         // uint160 addy = uint160(bytes20(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4));
         // controller.callWorkersFallback()
-
-        _mintTestSetup(1);
-
         vm.deal(test_user, 100 ether);
         vm.prank(test_user);
         // original call
