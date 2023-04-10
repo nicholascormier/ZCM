@@ -309,8 +309,14 @@ contract ControllerTest is Test, Shared {
 
         _mintTestSetup(1);
 
+        vm.deal(test_user, 100 ether);
         vm.prank(test_user);
-        Controller(proxy_address).callWorkersFallback(address(NFT), abi.encode(bytes8(keccak256("mint()")), address(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4)), 0, 1, 0, false);
+        // original call
+        // Controller(proxy_address).callWorkersFallback(address(NFT), abi.encodePacked(bytes4(keccak256("mint()")), address(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4)), 0, 1, 0, false);
+        bytes memory workerdata = abi.encodePacked(bytes4(keccak256("mint()")), bytes20(address(NFT)));
+        console.log(address(NFT));
+        Controller(proxy_address).callWorkersFallback(workerdata, 1, 0, false);
+
         vm.stopPrank();
     } 
 

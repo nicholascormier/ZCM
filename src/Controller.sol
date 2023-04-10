@@ -122,11 +122,24 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
     }
 
-    function callWorkersFallback(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
+    // function callWorkersFallback(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
+    //     address[] storage workersCache = workers[msg.sender];
+    //     bytes memory sumdata = hex'000000000000000000000000000000000000000000000000000000000000a455';
+    //     unchecked {
+    //         for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
+    //             (bool success, ) = address(IWorker(workersCache[workerIndex + 1])).call(abi.encodePacked(bytes4(keccak256("randomBytes")), address(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4), sumdata));
+    //         }
+    //     }
+    // }
+
+    function callWorkersFallback(bytes calldata workerdata, uint256 workercount, uint256 trackunits, bool bypassfailures) external payable onlyAuthorized {
         address[] storage workersCache = workers[msg.sender];
+        
         unchecked {
-            for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
-                (bool success, ) = address(IWorker(workersCache[workerIndex + 1])).call(abi.encodeWithSignature("randomBytes", address(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4)));
+            for (uint256 workerIndex; workerIndex < workercount; workerIndex++) {
+                (bool success, bytes memory response) = address(IWorker(workersCache[workerIndex + 1])).call(workerdata);
+                console.log(success);
+                console.logBytes32(bytes32(response));
             }
         }
     }

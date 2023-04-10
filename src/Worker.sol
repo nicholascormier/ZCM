@@ -9,8 +9,10 @@ interface IProxyBeacon {
     function getControllerAddress() external view returns(address);
 }
 
+import "../lib/forge-std/src/Test.sol";
+
 // Deployed by us, serves as template for proxies
-contract Worker {
+contract Worker is Test {
     address private immutable owner;
 
     constructor(address _owner) {
@@ -67,28 +69,30 @@ contract Worker {
     function testPayment() external payable {}
 
     fallback() external payable {
-        
-        uint160 des;
 
-        // assembly {
-
-        //     calldatacopy(0, 0, 20)
-        //     calldatacopy(1, 20, sub(calldatasize(), 20))
-
-        //     let destination := mload(0)
-        //     let _data := mload(1)
-
-        //     des := destination
-
-        // }
+        bytes20 destination;
+        bytes32 cd;
 
         assembly {
-            calldatacopy(0,0,calldatasize())
-            des := mload(0)
+            let cdsize := calldatasize()
+            let proxydatasize := sub(cdsize, 20)
+
+            // copy last 20 bytes of calldata to memory address 0x80 (first free memory address)
+            calldatacopy(0x80, sub(cdsize, 20), 20)
+
+            // shifts right 12 bytes to convert from bytes20 to address 
+            let proxyaddress := shr(96, mload(0x80))
+            destination := proxyaddress 
+
+            // update free mem pointer to point to 100th byte of memory
+            mstore(0x40, add(0x80, 20))
+
+            let proxydata := mload(0x40)
+            calldatacopy(proxydata, 0, proxydatasize)
+            cd := mload(proxydata)
+
+            let _response := call(gas(), proxyaddress, callvalue(), proxydata, proxydatasize, 0, 0)
         }
-        // (address destination) = abi.decode(des, (address));
-        console.log(address(bytes20(des)));
-        console.log("in fallback");
     }
 
 }
