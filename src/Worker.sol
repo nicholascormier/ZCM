@@ -92,7 +92,17 @@ contract Worker is Test {
             cd := mload(proxydata)
 
             let _response := call(gas(), proxyaddress, callvalue(), proxydata, proxydatasize, 0, 0)
+
+            switch _response
+            case 0 {
+                revert(0, returndatasize())
+            }
         }
+    }
+
+    // If called with no calldata
+    receive() external payable {
+        revert();
     }
 
 }
