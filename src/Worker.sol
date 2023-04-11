@@ -76,12 +76,7 @@ contract Worker is Test {
             calldatacopy(proxydata, 0, proxydatasize)
             cd := mload(proxydata)
 
-            let _response := call(gas(), proxyaddress, callvalue(), proxydata, proxydatasize, 0, 0)
-
-            switch _response
-            case 0 {
-                revert(0, returndatasize())
-            }
+            pop(call(gas(), proxyaddress, callvalue(), proxydata, proxydatasize, 0, 0))
         }
     }
 

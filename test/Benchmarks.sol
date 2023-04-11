@@ -55,7 +55,7 @@ contract Benchmarks is Test, Shared {
 
     function testGasCosts() external {
         vm.prank(test_user);
-        controller.callWorkers(address(0x3399B6e00b350b226AA18D3D552D750c326Ee475), abi.encodeWithSignature("publicMint(uint256)", 1), 0, 1, 0, true);
+        controller.callWorkers(address(0x3399B6e00b350b226AA18D3D552D750c326Ee475), abi.encodeWithSignature("publicMint(uint256)", 1), 0, 25, 0, true);
     }
 
 }
