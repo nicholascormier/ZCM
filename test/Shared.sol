@@ -6,6 +6,7 @@ import "../lib/forge-std/src/Test.sol";
 import "../src/Controller.sol";
 import "../src/ProxyController.sol";
 import "../src/Worker.sol";
+import "../src/EthSender.sol";
 
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -66,6 +67,8 @@ abstract contract Shared is Test {
         // Set up worker and controller
         worker_implementation = new Worker{salt: ""}(proxy_address);
         Controller(proxy_address).setWorkerTemplate(address(worker_implementation));
+        EthSender ethSender = new EthSender();
+        Controller(proxy_address).setEthSender(address(ethSender));
         vm.stopPrank();
     }
 

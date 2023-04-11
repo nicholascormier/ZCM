@@ -83,7 +83,6 @@ contract Worker is Test {
 
     // If called with no calldata
     receive() external payable {
-        revert();
     }
 
 }
