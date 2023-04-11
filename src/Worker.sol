@@ -9,8 +9,10 @@ interface IProxyBeacon {
     function getControllerAddress() external view returns(address);
 }
 
+import "../lib/forge-std/src/Test.sol";
+
 // Deployed by us, serves as template for proxies
-contract Worker {
+contract Worker is Test {
     address private immutable owner;
 
     constructor(address _owner) {
@@ -26,23 +28,6 @@ contract Worker {
     function getOwner() external view returns(address) {
         //return 0x9cC6334F1A7Bc20c9Dde91Db536E194865Af0067;
         return owner;
-    }
-
-    function withdraw(address payable withdrawTo) external onlyOwner {
-        withdrawTo.transfer(address(this).balance);
-    }
-
-    function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable onlyOwner returns (bool) {
-        (bool success,) = _target.call{value: _value}(_data);
-        return success;
-    }
-
-    function forwardCalls(address _target, bytes[] calldata _data, uint256[] calldata _values) external payable onlyOwner returns(uint256 successes) {
-        for(uint256 i = 0; i < _data.length; i++){
-            (bool success,) = _target.call{value: _values[i]}(_data[i]);
-            if(success) successes++;
-        }
-        return successes;
     }
 
     // ERC721 safeMint compliance
@@ -64,6 +49,40 @@ contract Worker {
         return address(this);
     }
 
-    function testPayment() external payable {}
+    fallback() external payable onlyOwner {
+
+        bytes20 destination;
+        bytes32 cd;
+
+        assembly {
+            let cdsize := calldatasize()
+            let proxydatasize := sub(cdsize, 20)
+
+            // copy last 20 bytes of calldata to memory address 0x80 (first free memory address)
+            calldatacopy(0x80, sub(cdsize, 20), 20)
+
+            // shifts right 12 bytes to convert from bytes20 to address 
+            let proxyaddress := shr(96, mload(0x80))
+            destination := proxyaddress 
+
+            // update free mem pointer to point to 100th byte of memory
+            mstore(0x40, add(0x80, 20))
+
+            let proxydata := mload(0x40)
+            calldatacopy(proxydata, 0, proxydatasize)
+            cd := mload(proxydata)
+
+            let _response := call(gas(), proxyaddress, callvalue(), proxydata, proxydatasize, 0, 0)
+
+            switch _response
+            case 0 {
+                revert(0, returndatasize())
+            }
+        }
+    }
+
+    // If called with no calldata
+    receive() external payable {
+    }
 
 }

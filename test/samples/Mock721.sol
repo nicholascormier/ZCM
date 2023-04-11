@@ -27,6 +27,10 @@ contract Mock721 is ERC721 {
         }
     }
 
+    function mintRevert() external {
+        revert();
+    }
+
     function safeMint() external {
         id++;
         _safeMint(msg.sender, id);

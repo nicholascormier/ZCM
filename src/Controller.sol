@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/ClonesUpgradeable.sol";
+import "./EthSender.sol";
 
 interface IWorker {
     function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable returns (bool);
@@ -23,6 +24,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     mapping(bytes8 => uint256) private exhausted;
 
     IWorker private workerTemplate;
+    EthSender private ethSender;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -72,6 +74,10 @@ contract Controller is Initializable, OwnableUpgradeable {
         workerTemplate = IWorker(_worker);
     }
 
+    function setEthSender(address _ethSender) external onlyOwner {
+        ethSender = EthSender(_ethSender);
+    }
+
     function _calculateAllowanceHash(address _target, address _caller) internal pure returns (bytes8) {
         // this should be unique per _caller address i think.
         return bytes8(keccak256(abi.encodePacked(_target, _caller)));
@@ -91,116 +97,134 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     // TODO Add tracking to this function as well
-    function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _totalValues, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
+    function callWorkersCustomSequential(address _target, bytes[][] calldata _data, uint256[][] calldata _values, uint256[] calldata _workerIndexes, bool _stopOnFailure) external payable onlyAuthorized {
         address[] storage workersCache = workers[msg.sender];
 
         // data structure: _data[workerIndex][callIndex]
         // data structure: _values[workerIndex][callIndex]
 
-        uint256 indexesLength = _workerIndexes.length;
-        for (uint256 workerIndex; workerIndex < indexesLength; workerIndex = unchecked_inc(workerIndex)) {
-            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCalls{value: _totalValues[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
+        unchecked {
+            uint256 indexesLength = _workerIndexes.length;
+            for (uint256 workerIndex; workerIndex < indexesLength; ++workerIndex) {
+                for(uint256 callIndex; callIndex < _data[workerIndex].length; ++callIndex){
+                    bytes memory data = abi.encodePacked(_data[workerIndex][callIndex], bytes20(_target));
+
+                    (bool success, ) = workersCache[_workerIndexes[workerIndex]].call{value: _values[workerIndex][callIndex]}(data);
+
+                    if(_stopOnFailure && success == false) break;
+                }
+            }
         }
     }
 
     // TODO Add tracking to this function (reminder that tracking here can be unique to each worker because each worker could be doing different transactions)
-    function callWorkersCustom(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256[] calldata _workerIndexes) external payable onlyAuthorized {
+    function callWorkersCustom(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256[] calldata _workerIndexes, bool _stopOnFailure) external payable onlyAuthorized {
         address[] storage workersCache = workers[msg.sender];
 
-        uint256 indexesLength = _workerIndexes.length;
-        for (uint256 workerIndex; workerIndex < indexesLength; workerIndex = unchecked_inc(workerIndex)) {
-            IWorker(workersCache[_workerIndexes[workerIndex]]).forwardCall{value: _values[workerIndex]}(_target, _data[workerIndex], _values[workerIndex]);
-        }
-    }
-
-    // This function is at the stack limit - no more local variables can be added (because of that, costs about 800 more gas per iteration)
-    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 totalValue, uint256 workerCount) external payable onlyAuthorized {
-        address[] storage workersCache = workers[msg.sender];
-
-        for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
-            IWorker(workersCache[workerIndex + 1]).forwardCalls{value: totalValue}(_target, _data, _values);
-        }
-    }
-
-    function callWorkersFallback(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
-        address[] storage workersCache = workers[msg.sender];
         unchecked {
-            for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
-                (bool success, ) = address(IWorker(workersCache[workerIndex + 1])).call(abi.encodeWithSignature("randomBytes", address(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4)));
+            uint256 indexesLength = _workerIndexes.length;
+            for (uint256 workerIndex; workerIndex < indexesLength; ++workerIndex) {
+                bytes memory data = abi.encodePacked(_data[workerIndex], bytes20(_target));
+
+                (bool success, ) = workersCache[_workerIndexes[workerIndex]].call{value: _values[workerIndex]}(data);
+
+                if(_stopOnFailure && success == false) break;
             }
         }
     }
+
+    function callWorkersSequential(address _target, bytes[] calldata _data, uint256[] calldata _values, uint256 workerCount, bool _stopOnFailure) external payable onlyAuthorized {
+        address[] storage workersCache = workers[msg.sender];
+
+        unchecked {
+            for (uint256 workerIndex; workerIndex < workerCount; ++workerIndex) {
+                address worker = workersCache[workerIndex + 1];
+                for(uint256 callIndex; callIndex < _data.length; ++callIndex) {
+                    bytes memory data = abi.encodePacked(_data[callIndex], bytes20(_target));
+
+                    (bool success, ) = worker.call{value: _values[callIndex]}(data);
+
+                    if(_stopOnFailure && success == false) break;
+                }
+            }
+        }
+    }
+
+    // function callWorkersFallback(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
+    //     address[] storage workersCache = workers[msg.sender];
+    //     bytes memory sumdata = hex'000000000000000000000000000000000000000000000000000000000000a455';
+    //     unchecked {
+    //         for (uint256 workerIndex; workerIndex < workerCount; workerIndex++) {
+    //             (bool success, ) = address(IWorker(workersCache[workerIndex + 1])).call(abi.encodePacked(bytes4(keccak256("randomBytes")), address(0x0D24e6e50EeC8A1f1DeDa82d94590098A7E664B4), sumdata));
+    //         }
+    //     }
+    // }
 
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
-        uint256 gasLeft = gasleft();
-        uint256 totalMintGas;
+        address[] storage workersCache = workers[msg.sender];
+
+        bytes memory data = abi.encodePacked(_data, bytes20(_target));
+
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         uint256 minted = exhausted[allowanceHash];
         uint256 allowance = allowance[allowanceHash];
-
-        address[] storage workersCache = workers[msg.sender];
-
-        for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
-            if (_units != 0 && allowance != 0 && (minted >= allowance)) break;
-            uint256 start = gasleft();
-            if(IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value)){
-                totalMintGas += start - gasleft();
-                if(_units != 0){
-                    unchecked {
+        
+        unchecked {
+            for (uint256 workerIndex; workerIndex < workerCount; ++workerIndex) {
+                if (allowance != 0 && minted >= allowance ) break;
+                (bool success, ) = workersCache[workerIndex + 1].call{value: _value}(data);
+                if(success == true) {
+                    if(_units != 0) {
                         minted += _units;
                     }
+                }else if(_stopOnFailure){
+                    break;
                 }
-            }else{
-                if(_stopOnFailure) break;
             }
         }
 
         if (_units != 0 && allowance != 0) {
             exhausted[allowanceHash] = minted;
         }
-
-        // I think this reclaims some gas
-        minted = 0;
-        console.log("gas burned:", gasLeft - gasleft());
-        console.log("gas used for minting:", totalMintGas);
     }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, uint256 _loops, bool _stopOnFailure) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _loops, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
+        address[] storage workersCache = workers[msg.sender];
+
+        bytes memory data = abi.encodePacked(_data, bytes20(_target));
+
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
         uint256 minted = exhausted[allowanceHash];
         uint256 allowance = allowance[allowanceHash];
-
-        address[] storage workersCache = workers[msg.sender];
-
-        for (uint256 workerIndex; workerIndex < workerCount; workerIndex = unchecked_inc(workerIndex)) {
-            for(uint256 currentLoop; currentLoop < _loops; currentLoop = unchecked_inc(currentLoop)){
-                if (_units != 0 && allowance != 0 && (minted >= allowance)) break;
-                if(IWorker(workersCache[workerIndex + 1]).forwardCall{value: _value}(_target, _data, _value)){
-                    if(_units != 0){
-                        unchecked {
+        
+        unchecked {
+            for (uint256 workerIndex; workerIndex < workerCount; ++workerIndex) {
+                for(uint256 loopIndex; loopIndex < _loops; ++loopIndex) {
+                    if (allowance != 0 && minted >= allowance ) break;
+                    (bool success, ) = workersCache[workerIndex + 1].call{value: _value}(data);
+                    if(success == true) {
+                        if(_units != 0) {
                             minted += _units;
                         }
+                    }else if(_stopOnFailure){
+                        break;
                     }
-                }else{
-                    if(_stopOnFailure) break;
                 }
             }
-            
         }
 
         if (_units != 0 && allowance != 0) {
             exhausted[allowanceHash] = minted;
         }
-
-        // I think this reclaims some gas
-        minted = 0;
     }
 
     function withdrawFromWorkers(uint256[] calldata _workerIndexes, address payable withdrawTo) external onlyAuthorized {
+        bytes memory data = abi.encodePacked(abi.encodeWithSignature("empty(address)", withdrawTo), bytes20(address(ethSender)));
+
         for(uint256 i = 0; i < _workerIndexes.length; i++){
-            IWorker(workers[msg.sender][_workerIndexes[i]]).withdraw(withdrawTo);
+            workers[msg.sender][_workerIndexes[i]].call(data);
         }
     }
 
