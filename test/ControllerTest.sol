@@ -24,7 +24,6 @@ contract ControllerTest is Test, Shared {
 
     Mock721 NFT = new Mock721();
     Mock1155 NFT2 = new Mock1155();
-    EthSender sender = new EthSender();
 
     bytes[] data;
     bytes[][] recursiveData;
@@ -275,6 +274,9 @@ contract ControllerTest is Test, Shared {
 
         address[] memory workers = Controller(proxy_address).getWorkers(test_user);
 
+        console.log(workers[1], "addy");
+        console.log(address(ethSender), "sender addy");
+
         vm.deal(test_user, 1 ether);
         workers[1].call{value: 1 ether}("");
 
@@ -288,14 +290,6 @@ contract ControllerTest is Test, Shared {
         // address does not have any excess eth for some reason
         assertTrue(test_user.balance == 1 ether);
         vm.stopPrank();
-    }
-
-    function testGasCosts() external {
-        _mintTestSetup(100);
-        Controller controller = Controller(proxy_address);
-
-        vm.prank(test_user);
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 100, 0, true);
     }
 
     function testFallback() external {

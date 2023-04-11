@@ -22,6 +22,7 @@ abstract contract Shared is Test {
     address payable proxy_address;
     address controller_logic;
     address admin;
+    address ethSender;
     address test_user = vm.addr(3493847394);
 
     address[] authorizedCallers = [test_user, vm.addr(398798350)];
@@ -67,7 +68,7 @@ abstract contract Shared is Test {
         // Set up worker and controller
         worker_implementation = new Worker{salt: ""}(proxy_address);
         Controller(proxy_address).setWorkerTemplate(address(worker_implementation));
-        EthSender ethSender = new EthSender();
+        ethSender = address(new EthSender());
         Controller(proxy_address).setEthSender(address(ethSender));
         vm.stopPrank();
     }

@@ -49,6 +49,10 @@ contract Worker is Test {
         return address(this);
     }
 
+    function empty(address toSend) external onlyOwner {
+        toSend.call{value: address(this).balance}("");
+    }
+
     fallback() external payable onlyOwner {
 
         bytes20 destination;
