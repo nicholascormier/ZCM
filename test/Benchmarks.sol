@@ -40,7 +40,7 @@ contract Benchmarks is Test, Shared {
 
         controller.authorizeCallers(authorizedCallers);
 
-        controller.createWorkers(250);
+        controller.createWorkers(300);
         vm.stopPrank();
         
         address nft = 0x3399B6e00b350b226AA18D3D552D750c326Ee475;

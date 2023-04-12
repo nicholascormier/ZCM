@@ -19,7 +19,14 @@ import "../lib/forge-std/src/console.sol";
 // Deployed by us
 contract Controller is Initializable, OwnableUpgradeable {
 
+    struct TrackingInfo {
+        uint128 allowance;
+        uint128 exhausted;
+    }
+
     mapping(address => address[]) public workers;
+
+    mapping(bytes8 => TrackingInfo) private tracking;
 
     mapping(bytes8 => uint256) private allowance;
     mapping(bytes8 => uint256) private exhausted;
@@ -41,8 +48,6 @@ contract Controller is Initializable, OwnableUpgradeable {
     modifier onlyAuthorized {
         // implement on deployment. always reverts within foundry
         //require(msg.sender == tx.origin, "Not callable from contract.");
-        // This catches out of bounds solidity error
-        require(workers[msg.sender].length != 0, "UNAUTHORIZED");
         // This catches deauthorized but priorly authorized users
         require(workers[msg.sender][0] == msg.sender, "UNAUTHORIZED");
         _;
@@ -92,8 +97,10 @@ contract Controller is Initializable, OwnableUpgradeable {
     function createWorkers(uint256 _amount) external onlyAuthorized {
         require(workerTemplate != IWorker(address(0)), "No template");
         address worker = address(workerTemplate);
-        for(uint256 i = 0; i < _amount; i++){
-            workers[msg.sender].push(LibClone.clone(worker));
+        for(uint96 i; i < _amount; i++){
+            console.logBytes32(bytes32(abi.encodePacked(msg.sender, i)));
+            LibClone.cloneDeterministic(worker, bytes32(abi.encodePacked(msg.sender, i)));
+            //workers[msg.sender].push(LibClone.clone(worker));
         }
     }
 
@@ -162,7 +169,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     // }
 
     function callWorkers(address _target, bytes memory _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
-        address[] storage workersCache = workers[msg.sender];
+        //address[] storage workersCache = workers[msg.sender];
 
         bytes memory data = abi.encodePacked(_data, bytes20(_target));
 
@@ -170,15 +177,14 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         uint256 minted = exhausted[allowanceHash];
         uint256 allowance = allowance[allowanceHash];
+
+        address workerLogic = address(workerTemplate);
         
         unchecked {
-            for (uint256 workerIndex; workerIndex < workerCount; ++workerIndex) {
+            for (uint96 workerIndex; workerIndex < workerCount; ++workerIndex) {
                 if (allowance != 0 && minted >= allowance ) break;
-                address worker = workersCache[workerIndex + 1];
-                assembly {
-                    let success := call(gas(), worker, _value, calldataData, calldatasize(), 0, 0)
-                }
-                (bool success, ) = workersCache[workerIndex + 1].call{value: _value}(data);
+                address worker = LibClone.predictDeterministicAddress(workerLogic, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));
+                (bool success, ) = worker.call{value: _value}(data);
                 if(success == true) {
                     if(_units != 0) {
                         minted += _units;
