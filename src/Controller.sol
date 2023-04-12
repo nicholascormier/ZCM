@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/ClonesUpgradeable.sol";
+import "../lib/solady/src/utils/LibClone.sol";
 import "./EthSender.sol";
 
 interface IWorker {
@@ -92,7 +93,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         require(workerTemplate != IWorker(address(0)), "No template");
         address worker = address(workerTemplate);
         for(uint256 i = 0; i < _amount; i++){
-            workers[msg.sender].push(ClonesUpgradeable.clone(worker));
+            workers[msg.sender].push(LibClone.clone(worker));
         }
     }
 
