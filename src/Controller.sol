@@ -161,7 +161,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     //     }
     // }
 
-    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes memory _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
         address[] storage workersCache = workers[msg.sender];
 
         bytes memory data = abi.encodePacked(_data, bytes20(_target));
@@ -174,6 +174,10 @@ contract Controller is Initializable, OwnableUpgradeable {
         unchecked {
             for (uint256 workerIndex; workerIndex < workerCount; ++workerIndex) {
                 if (allowance != 0 && minted >= allowance ) break;
+                address worker = workersCache[workerIndex + 1];
+                assembly {
+                    let success := call(gas(), worker, _value, calldataData, calldatasize(), 0, 0)
+                }
                 (bool success, ) = workersCache[workerIndex + 1].call{value: _value}(data);
                 if(success == true) {
                     if(_units != 0) {
