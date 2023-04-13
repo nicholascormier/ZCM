@@ -92,7 +92,6 @@ contract Controller is Initializable, OwnableUpgradeable {
         require(workerTemplate != address(0), "No template");
         address worker = address(workerTemplate);
         for(uint96 i; i < _amount; i++){
-            console.logBytes32(bytes32(abi.encodePacked(msg.sender, i)));
             LibClone.cloneDeterministic(worker, bytes32(abi.encodePacked(msg.sender, i)));
             //workers[msg.sender].push(LibClone.clone(worker));
         }
