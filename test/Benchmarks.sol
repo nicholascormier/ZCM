@@ -34,14 +34,11 @@ contract Benchmarks is Test {
     Controller controller;
 
     function setUp() external {
-        // shared
-        //_devDeployBase();
-        //_authorizeCallers();
         vm.startPrank(test_user);
-        //ERC1967Factory factory = new ERC1967Factory();
-        //controllerLogic = new Controller();
-        //controller = Controller(payable(factory.deploy(address(controllerLogic), admin)));
-        controller = new Controller();
+        ERC1967Factory factory = new ERC1967Factory();
+        controllerLogic = new Controller();
+        controller = Controller(payable(factory.deploy(address(controllerLogic), admin)));
+        // controller = new Controller();
         controller.initialize();
 
         Worker worker = new Worker(address(controller));
