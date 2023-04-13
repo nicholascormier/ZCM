@@ -38,7 +38,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     constructor() {
         // include in live deployments
         //if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
-        //_disableInitializers();
+        _disableInitializers();
     }
 
     function initialize() initializer public {
@@ -168,7 +168,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     //     }
     // }
 
-    function callWorkers(address _target, bytes memory _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
+    function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
         //address[] storage workersCache = workers[msg.sender];
 
         bytes memory data = abi.encodePacked(_data, bytes20(_target));

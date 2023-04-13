@@ -17,22 +17,30 @@ import "./samples/Multitest.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "../lib/foundry-upgrades/src/ProxyTester.sol";
+import "../lib/solady/src/utils/ERC1967Factory.sol";
 
 import "./Shared.sol";
 
-contract Benchmarks is Test, Shared {
+contract Benchmarks is Test {
 
     address multi;
-    Controller controller;
+    Controller controllerLogic;
 
-    address[] callers;
+    address test_user = vm.addr(3424423);
+    address admin = vm.addr(1042423423);
+
+    address[] authorizedCallers = [test_user];
+
+    Controller controller;
 
     function setUp() external {
         // shared
         //_devDeployBase();
         //_authorizeCallers();
         vm.startPrank(test_user);
-        controller = new Controller();
+        ERC1967Factory factory = new ERC1967Factory();
+        controllerLogic = new Controller();
+        controller = Controller(payable(factory.deploy(address(controllerLogic), admin)));
         controller.initialize();
 
         Worker worker = new Worker(address(controller));
