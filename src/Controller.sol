@@ -7,12 +7,6 @@ import "../lib/openzeppelin-contracts-upgradeable/contracts/proxy/ClonesUpgradea
 import "../lib/solady/src/utils/LibClone.sol";
 import "./EthSender.sol";
 
-interface IWorker {
-    function forwardCall(address _target, bytes calldata _data, uint256 _value) external payable returns (bool);
-    function forwardCalls(address _target, bytes[] calldata _data, uint256[] calldata _values) external payable returns(uint256 successes);
-    function withdraw(address payable withdrawTo) external;
-}
-
 import "../lib/forge-std/src/Test.sol";
 import "../lib/forge-std/src/console.sol";
 
@@ -28,17 +22,14 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     mapping(bytes8 => TrackingInfo) private tracking;
 
-    mapping(bytes8 => uint256) private allowance;
-    mapping(bytes8 => uint256) private exhausted;
-
-    IWorker private workerTemplate;
+    address payable private workerTemplate;
     EthSender private ethSender;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // include in live deployments
         //if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
-        _disableInitializers();
+       // _disableInitializers();
     }
 
     function initialize() initializer public {
@@ -77,7 +68,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     }
 
     function setWorkerTemplate(address _worker) external onlyOwner {
-        workerTemplate = IWorker(_worker);
+        workerTemplate = payable(_worker);
     }
 
     function setEthSender(address _ethSender) external onlyOwner {
@@ -91,11 +82,14 @@ contract Controller is Initializable, OwnableUpgradeable {
  
     function createAllowance(address _target, uint256 _allowance) external onlyAuthorized {
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
-        allowance[allowanceHash] = _allowance;
+        tracking[allowanceHash] = TrackingInfo({
+            allowance: uint128(_allowance),
+            exhausted: 0
+        });
     }
 
     function createWorkers(uint256 _amount) external onlyAuthorized {
-        require(workerTemplate != IWorker(address(0)), "No template");
+        require(workerTemplate != address(0), "No template");
         address worker = address(workerTemplate);
         for(uint96 i; i < _amount; i++){
             console.logBytes32(bytes32(abi.encodePacked(msg.sender, i)));
@@ -175,19 +169,21 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        uint256 minted = exhausted[allowanceHash];
-        uint256 allowance = allowance[allowanceHash];
+        uint128 allowance = tracking[allowanceHash].allowance;
+        uint128 minted = tracking[allowanceHash].exhausted;
 
-        address workerLogic = address(workerTemplate);
+        address workerLogic = workerTemplate;
+
+        bytes32 initCode = LibClone.initCodeHash(workerLogic);
         
         unchecked {
             for (uint96 workerIndex; workerIndex < workerCount; ++workerIndex) {
                 if (allowance != 0 && minted >= allowance ) break;
-                address worker = LibClone.predictDeterministicAddress(workerLogic, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));
+                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));
                 (bool success, ) = worker.call{value: _value}(data);
                 if(success == true) {
                     if(_units != 0) {
-                        minted += _units;
+                        minted += uint128(_units);
                     }
                 }else if(_stopOnFailure){
                     break;
@@ -196,7 +192,10 @@ contract Controller is Initializable, OwnableUpgradeable {
         }
 
         if (_units != 0 && allowance != 0) {
-            exhausted[allowanceHash] = minted;
+            tracking[allowanceHash] = TrackingInfo({
+                allowance: allowance,
+                exhausted: minted
+            });
         }
     }
 
@@ -207,17 +206,16 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
 
-        uint256 minted = exhausted[allowanceHash];
-        uint256 allowance = allowance[allowanceHash];
+        TrackingInfo memory track = tracking[allowanceHash];
         
         unchecked {
             for (uint256 workerIndex; workerIndex < workerCount; ++workerIndex) {
                 for(uint256 loopIndex; loopIndex < _loops; ++loopIndex) {
-                    if (allowance != 0 && minted >= allowance ) break;
+                    if (track.allowance != 0 && track.exhausted >= track.allowance ) break;
                     (bool success, ) = workersCache[workerIndex + 1].call{value: _value}(data);
                     if(success == true) {
                         if(_units != 0) {
-                            minted += _units;
+                            track.exhausted += uint128(_units);
                         }
                     }else if(_stopOnFailure){
                         break;
@@ -226,8 +224,8 @@ contract Controller is Initializable, OwnableUpgradeable {
             }
         }
 
-        if (_units != 0 && allowance != 0) {
-            exhausted[allowanceHash] = minted;
+        if (_units != 0 && track.allowance != 0) {
+            tracking[allowanceHash] = track;
         }
     }
 
