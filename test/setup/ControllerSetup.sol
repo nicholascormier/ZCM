@@ -44,7 +44,7 @@ contract ControllerSetup is Test{
         Worker worker = new Worker(address(controller));
 
         // Set the worker
-        controller.setWorkerTemplate(worker);
+        controller.setWorkerTemplate(address(worker));
         vm.stopPrank();
     }
 
