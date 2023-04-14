@@ -14,14 +14,14 @@ contract AuthorizationTests is Test, Setup, ControllerSetup, AuthorizationSetup 
     }
 
     // Start test as unauthorized user and expect createWorkers to revert
-    function test_unauthorizedCall(){
+    function test_unauthorizedCall() public{
         vm.prank(authorized_user);
         vm.expectRevert();
         controller.createWorkers(1);
     }
 
     // Start test as authorized user and expect createWorkers to create a worker
-    function test_authorizedCall(){
+    function test_authorizedCall() public{
         // First, authorize the user
         vm.prank(controller_deployer);
         controller.authorizeCallers(authorized_user_array);
@@ -35,7 +35,7 @@ contract AuthorizationTests is Test, Setup, ControllerSetup, AuthorizationSetup 
     }
 
     // Start test as authorized user and expect createWorkers to run, become deauthorized, then expect createWorkers to revert
-    function test_unauthorizeUser(){
+    function test_unauthorizeUser() public{
         // We can recycle our test from earlier
         test_authorizedCall();
 
