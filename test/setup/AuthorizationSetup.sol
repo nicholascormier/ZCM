@@ -7,8 +7,9 @@ import "../../src/Controller.sol";
 import "../../src/Worker.sol";
 import "../../lib/solady/src/utils/ERC1967Factory.sol";
 
-contract ControllerSetup is Test{
+contract AuthorizationSetup is Test{
     // Have a storage array for a test authorized user
-    address[] authorized_user = [vm.addr(1)];
+    address authorized_user = vm.addr(1);
+    address[] authorized_user_array = [vm.addr(1)];
 
 }
