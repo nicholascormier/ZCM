@@ -1,18 +1,8 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
-import "../lib/forge-std/src/console.sol";
-
-interface IProxyBeacon {
-    function getImplementation() external view returns(address);
-    function getControllerAddress() external view returns(address);
-}
-
-import "../lib/forge-std/src/Test.sol";
-
 // Deployed by us, serves as template for proxies
-contract Worker is Test {
+contract Worker{
     address private immutable owner;
 
     constructor(address _owner) {
@@ -24,11 +14,6 @@ contract Worker is Test {
         //require(0x9cC6334F1A7Bc20c9Dde91Db536E194865Af0067 == msg.sender, "Not owner");
         _;
     }
-    
-    function getOwner() external view returns(address) {
-        //return 0x9cC6334F1A7Bc20c9Dde91Db536E194865Af0067;
-        return owner;
-    }
 
     // ERC721 safeMint compliance
     function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external pure returns(bytes4) {
@@ -38,21 +23,6 @@ contract Worker is Test {
     // ERC1155 safeMint compliance
     function onERC1155Received(address operator, address from, uint256 id, uint256 value, bytes calldata data) external pure returns(bytes4) {
         return 0xf23a6e61;
-    }
-
-    // TODO Delete this
-    function getBasicResponse() external view returns(address) {
-        return address(this);
-    }
-
-    // TODO Delete this
-    function getBasicResponseProtected() external view onlyOwner returns(address) {
-        return address(this);
-    }
-
-    // TODO Delete this
-    function empty(address toSend) external onlyOwner {
-        toSend.call{value: address(this).balance}("");
     }
 
     fallback() external payable onlyOwner {
