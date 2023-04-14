@@ -19,148 +19,164 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
         _deployWorkers(controller);
     }
 
-
+    // Simple test of the base callWorkers
     function testCallWorkers721() external {
         // Mint an NFT
         vm.prank(test_user);
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
-        vm.stopPrank();
+        controller.callWorkers(address(nft), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
         
         // Check that the worker's NFT is mined
         address[] memory workers = controller.getWorkers(test_user);
         
-        assertTrue(NFT.balanceOf(workers[1]) == 1);
+        assertTrue(nft.balanceOf(workers[0]) == 1);
     }
 
+    // This testing the loop functionality of callWorkers
     function testCallWorkers721Loop() external {
-        // Set up with a worker
-        _mintTestSetup(1);
-
         // Mint an NFT (loop twice)
         vm.prank(test_user);
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 1, 2, 0, false);
-        vm.stopPrank();
+        controller.callWorkers(address(nft), abi.encodeWithSignature("mint()"), 0, 1, 2, 0, false);
         
         // Expect balance to be 2 instead of 1 because of the loop
         address[] memory workers = controller.getWorkers(test_user);
-        
-        assertTrue(NFT.balanceOf(workers[1]) == 2);
+        assertTrue(nft.balanceOf(workers[0]) == 2);
     }
 
+    // This is testing to make sure that execution will end if a transaction reverts
     function testCallWorkersRevert() external {
-        _mintTestSetup(7);
-
-        Mock721Revert NFT = new Mock721Revert();
-        
         // Expect mint to revert after 5 have been minted
         vm.prank(test_user);
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 7, 0, true);
-        vm.stopPrank();
+        controller.callWorkers(address(nft), abi.encodeWithSignature("mintRevertAfterFive()"), 0, 7, 0, true);
         
         // Ensure the loop terminates all future mints once one reverts
         address[] memory workers = controller.getWorkers(test_user);
         
-        assertTrue(NFT.balanceOf(workers[1]) == 1);
-        assertTrue(NFT.balanceOf(workers[2]) == 1);
-        assertTrue(NFT.balanceOf(workers[3]) == 1);
-        assertTrue(NFT.balanceOf(workers[4]) == 1);
-        assertTrue(NFT.balanceOf(workers[5]) == 1);
-        assertTrue(NFT.balanceOf(workers[6]) == 0);
-        assertTrue(NFT.balanceOf(workers[7]) == 0);
+        assertTrue(nft.balanceOf(workers[0]) == 1);
+        assertTrue(nft.balanceOf(workers[1]) == 1);
+        assertTrue(nft.balanceOf(workers[2]) == 1);
+        assertTrue(nft.balanceOf(workers[3]) == 1);
+        assertTrue(nft.balanceOf(workers[4]) == 1);
+        assertTrue(nft.balanceOf(workers[5]) == 0);
+        assertTrue(nft.balanceOf(workers[6]) == 0);
     }
 
+    // This tests calling a number of workers with sequential transaction data
     function testCallWorkersSequential721() external {
-        _mintTestSetup(1);
-        vm.startPrank(test_user);
         vm.deal(test_user, 100 ether);
 
-        // Create the function arguments
-        Controller controller = controller;
+        // Get workers for safeTransferFrom
         address[] memory workers = controller.getWorkers(test_user);
 
-        data = [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", workers[1], test_user, 1)];
-        values = [0.01 ether, uint256(0)];
+        // Create arrays needed for function arguments
+        bytes[] memory data;
+        data[0] = abi.encodeWithSignature("paidMint()");
+        data[1] = abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", workers[0], test_user, 1);
+
+        uint256[] memory values;
+        values[0] = 0.01 ether;
+        values[1] = 0;
 
         // Mint with the paid mint
-        controller.callWorkersSequential{value: 0.01 ether}(address(NFT), data, values, 1, true);
-
-        vm.stopPrank();
+        vm.prank(test_user);
+        controller.callWorkersSequential{value: 0.01 ether}(address(nft), data, values, 1, true);
 
         // Make sure the NFT was minted and transferred to the test user
-        assertTrue(NFT.balanceOf(test_user) == 1);
+        assertTrue(nft.balanceOf(test_user) == 1);
     }
 
+    // This tests calling a custom worker (by ID) with transaction data
     function testCallWorkersCustom721() external {
-        _mintTestSetup(2);
-        vm.startPrank(test_user);
         vm.deal(test_user, 100 ether);
 
-        Controller controller = controller;
+        // Creates arrays needed for function arguments
+        bytes[] memory data;
+        data[0] = abi.encodeWithSignature("paidMint()");
+        data[1] = abi.encodeWithSignature("mint(uint256)", 5);
 
-        data = [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("mint(uint256)", 5)];
-        values = [uint256(0.01 ether), uint256(0)];
-        workerIndexes = [1, 2];
+        uint256[] memory values;
+        values[0] = 0.01 ether;
+        values[1] = 0;
 
-        controller.callWorkersCustom{value: 0.01 ether}(address(NFT), data, values, workerIndexes, true);
+        uint256[] memory indexes;
+        indexes[0] = 0;
+        indexes[1] = 1;
 
-        vm.stopPrank();
+        // Run the custom mint
+        vm.prank(test_user);
+        controller.callWorkersCustom{value: 0.01 ether}(address(nft), data, values, indexes, true);
 
+        // Make sure NFT balances match expected values
         address[] memory workers = controller.getWorkers(test_user);
-        assertTrue(NFT.balanceOf(workers[1]) == 1);
-        assertTrue(NFT.balanceOf(workers[2]) == 5);
+        assertTrue(nft.balanceOf(workers[0]) == 1);
+        assertTrue(nft.balanceOf(workers[1]) == 5);
     }
 
+    // This tests calling a custom worker (by ID) with sequential transaction data
     function testCallWorkersCustomSequential721() external {
-        _mintTestSetup(2);
-        vm.startPrank(test_user);
         vm.deal(test_user, 100 ether);
 
-        Controller controller = controller;
+        // Create arrays needed for function arguments
+        bytes[][] memory data;
 
-        recursiveData = [[abi.encodeWithSignature("mint()"), abi.encodeWithSignature("mint(uint256)", 5)], [abi.encodeWithSignature("paidMint()"), abi.encodeWithSignature("mint()")]];
-        recursiveValues = [[uint256(0), uint256(0)], [0.01 ether, uint256(0)]];
-        recursiveTotalValues = [uint256(0), 0.01 ether];
-        workerIndexes = [1, 2];
+        bytes[] memory firstCalls;
+        firstCalls[0] = abi.encodeWithSignature("mint()");
+        firstCalls[1] = abi.encodeWithSignature("mint(uint256)", 5);
+        data[0] = firstCalls;
 
-        //controller.callWorkersCustoSequential(address(NFT), data, values, workers, false, 0);
-        controller.callWorkersCustomSequential{value: 0.01 ether}(address(NFT), recursiveData, recursiveValues, workerIndexes, true);
+        bytes[] memory secondCalls;
+        secondCalls[0] = abi.encodeWithSignature("paidMint()");
+        secondCalls[1] = abi.encodeWithSignature("mint()");
+        data[1] = secondCalls;
 
-        vm.stopPrank();
+        uint256[][] memory values;
 
+        uint256[] memory firstValues;
+        firstValues[0] = 0;
+        firstValues[1] = 0;
+        values[0] = firstValues;
+
+        uint256[] memory secondValues;
+        secondValues[0] = 0.01 ether;
+        secondValues[1] = 0;
+        values[1] = secondValues;
+
+        uint256[] memory indexes;
+        indexes[0] = 0;
+        indexes[1] = 1;
+
+        // Call the workers function
+        vm.prank(test_user);
+        controller.callWorkersCustomSequential{value: 0.01 ether}(address(nft), data, values, indexes, true);
+
+        // Make sure NFT balances match expected values
         address[] memory workers = controller.getWorkers(test_user);
-        assertTrue(NFT.balanceOf(workers[1]) == 6);
-        assertTrue(NFT.balanceOf(workers[2]) == 2);
+        assertTrue(nft.balanceOf(workers[0]) == 6);
+        assertTrue(nft.balanceOf(workers[1]) == 2);
     }
 
     // Only 1155 test - if all the 721 tests worked, and this one passes, all the 1155 tests should work.
     function testCallWorkers1155() external {
-        _mintTestSetup(1);
-        vm.startPrank(test_user);
-
-        Controller controller = controller;
-
-        controller.callWorkers(address(NFT2), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
-        vm.stopPrank();
+        vm.prank(test_user);
+        controller.callWorkers(address(nft2), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
         
         address[] memory workers = controller.getWorkers(test_user);
         
-        assertTrue(NFT2.balanceOf(workers[1], 0) == 1);
+        assertTrue(nft2.balanceOf(workers[0], 0) == 1);
     }
 
+    // Makes sure callWorkers will not exceed allowances even in multiple calls
     function testAllowances() external {
-        _mintTestSetup(2);
         vm.startPrank(test_user);
-        Controller controller = controller;
 
         address[] memory workers = controller.getWorkers(test_user);
-        controller.createAllowance(address(NFT), 1);
+        controller.createAllowance(address(nft), 1);
 
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 2, 1, false);
-        controller.callWorkers(address(NFT), abi.encodeWithSignature("mint()"), 0, 2, 1, false);
+        controller.callWorkers(address(nft), abi.encodeWithSignature("mint()"), 0, 2, 1, false);
+        controller.callWorkers(address(nft), abi.encodeWithSignature("mint()"), 0, 2, 1, false);
 
         vm.stopPrank();
 
-        assertTrue(NFT.balanceOf(workers[1]) == 1);
-        assertTrue(NFT.balanceOf(workers[2]) == 0);
+        assertTrue(nft.balanceOf(workers[0]) == 1);
+        assertTrue(nft.balanceOf(workers[1]) == 0);
     }
 }
