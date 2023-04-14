@@ -20,7 +20,7 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // Simple test of the base callWorkers
-    function testCallWorkers721() external {
+    function test_callWorkers721() external {
         // Mint an NFT
         vm.prank(test_user);
         controller.callWorkers(address(nft), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
@@ -32,7 +32,7 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // This testing the loop functionality of callWorkers
-    function testCallWorkers721Loop() external {
+    function test_callWorkers721Loop() external {
         // Mint an NFT (loop twice)
         vm.prank(test_user);
         controller.callWorkers(address(nft), abi.encodeWithSignature("mint()"), 0, 1, 2, 0, false);
@@ -43,7 +43,7 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // This is testing to make sure that execution will end if a transaction reverts
-    function testCallWorkersRevert() external {
+    function test_callWorkersRevert() external {
         // Expect mint to revert after 5 have been minted
         vm.prank(test_user);
         controller.callWorkers(address(nft), abi.encodeWithSignature("mintRevertAfterFive()"), 0, 7, 0, true);
@@ -61,18 +61,18 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // This tests calling a number of workers with sequential transaction data
-    function testCallWorkersSequential721() external {
+    function test_callWorkersSequential721() external {
         vm.deal(test_user, 100 ether);
 
         // Get workers for safeTransferFrom
         address[] memory workers = controller.getWorkers(test_user);
 
         // Create arrays needed for function arguments
-        bytes[] memory data;
+        bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSignature("paidMint()");
         data[1] = abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", workers[0], test_user, 1);
 
-        uint256[] memory values;
+        uint256[] memory values = new uint256[](2);
         values[0] = 0.01 ether;
         values[1] = 0;
 
@@ -85,19 +85,19 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // This tests calling a custom worker (by ID) with transaction data
-    function testCallWorkersCustom721() external {
+    function test_callWorkersCustom721() external {
         vm.deal(test_user, 100 ether);
 
         // Creates arrays needed for function arguments
-        bytes[] memory data;
+        bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSignature("paidMint()");
         data[1] = abi.encodeWithSignature("mint(uint256)", 5);
 
-        uint256[] memory values;
+        uint256[] memory values = new uint256[](2);
         values[0] = 0.01 ether;
         values[1] = 0;
 
-        uint256[] memory indexes;
+        uint256[] memory indexes = new uint256[](2);
         indexes[0] = 0;
         indexes[1] = 1;
 
@@ -112,35 +112,35 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // This tests calling a custom worker (by ID) with sequential transaction data
-    function testCallWorkersCustomSequential721() external {
+    function test_callWorkersCustomSequential721() external {
         vm.deal(test_user, 100 ether);
 
         // Create arrays needed for function arguments
-        bytes[][] memory data;
+        bytes[][] memory data = new bytes[][](2);
 
-        bytes[] memory firstCalls;
+        bytes[] memory firstCalls = new bytes[](2);
         firstCalls[0] = abi.encodeWithSignature("mint()");
         firstCalls[1] = abi.encodeWithSignature("mint(uint256)", 5);
         data[0] = firstCalls;
 
-        bytes[] memory secondCalls;
+        bytes[] memory secondCalls = new bytes[](2);
         secondCalls[0] = abi.encodeWithSignature("paidMint()");
         secondCalls[1] = abi.encodeWithSignature("mint()");
         data[1] = secondCalls;
 
-        uint256[][] memory values;
+        uint256[][] memory values = new uint256[][](2);
 
-        uint256[] memory firstValues;
+        uint256[] memory firstValues = new uint256[](2);
         firstValues[0] = 0;
         firstValues[1] = 0;
         values[0] = firstValues;
 
-        uint256[] memory secondValues;
+        uint256[] memory secondValues = new uint256[](2);
         secondValues[0] = 0.01 ether;
         secondValues[1] = 0;
         values[1] = secondValues;
 
-        uint256[] memory indexes;
+        uint256[] memory indexes = new uint256[](2);
         indexes[0] = 0;
         indexes[1] = 1;
 
@@ -155,7 +155,7 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // Only 1155 test - if all the 721 tests worked, and this one passes, all the 1155 tests should work.
-    function testCallWorkers1155() external {
+    function test_callWorkers1155() external {
         vm.prank(test_user);
         controller.callWorkers(address(nft2), abi.encodeWithSignature("mint()"), 0, 1, 0, false);
         
@@ -165,7 +165,7 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
     }
 
     // Makes sure callWorkers will not exceed allowances even in multiple calls
-    function testAllowances() external {
+    function test_mintAllowances() external {
         vm.startPrank(test_user);
 
         address[] memory workers = controller.getWorkers(test_user);
@@ -175,6 +175,9 @@ contract ForwardingTests is Test, Setup, ControllerSetup, MintSetup{
         controller.callWorkers(address(nft), abi.encodeWithSignature("mint()"), 0, 2, 1, false);
 
         vm.stopPrank();
+
+        console.log(nft.balanceOf(workers[0]), "worker zero");
+        console.log(nft.balanceOf(workers[1]), "worker one");
 
         assertTrue(nft.balanceOf(workers[0]) == 1);
         assertTrue(nft.balanceOf(workers[1]) == 0);

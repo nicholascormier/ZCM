@@ -13,10 +13,10 @@ contract MintSetup is Test {
     Mock721 nft = new Mock721();
     Mock1155 nft2 = new Mock1155();
 
-    address private controller_deployer = vm.addr(2);
+    address private test_user = vm.addr(4);
 
     function _deployWorkers(Controller controller) internal {
-        vm.prank(controller_deployer);
+        vm.prank(test_user);
         controller.createWorkers(250);
     }   
 

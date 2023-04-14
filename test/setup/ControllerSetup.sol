@@ -16,7 +16,7 @@ contract ControllerSetup is Test{
     address proxy_admin = vm.addr(3);
     address controller_deployer = vm.addr(2);
 
-    address private test_user = vm.addr(0);
+    address private test_user = vm.addr(4);
     address[] private authorized_users = [test_user];
 
     function _deployController() internal {
@@ -29,10 +29,10 @@ contract ControllerSetup is Test{
         controller = Controller(payable(factory.deploy(address(controller_logic), proxy_admin)));
         // Initialize the proxy (Ownable)
         controller.initialize();
+        vm.stopPrank();
 
         // Set up worker
         _setWorkerTemplate();
-        vm.stopPrank();
 
         // Authorize the test user
         _authorizeTestUser();

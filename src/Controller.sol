@@ -19,7 +19,7 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     // Struct for user information (authorized users)
     struct UserInfo {
-        uint192 created;
+        uint96 created;
         bool authorized;
     }
     
@@ -88,10 +88,12 @@ contract Controller is Initializable, OwnableUpgradeable {
     function createWorkers(uint256 _amount) external onlyAuthorized {
         require(workerTemplate != address(0), "No template");
         address worker = address(workerTemplate);
-        for(uint96 i; i < _amount; i++){
+        uint96 currentIndex = userInfo[msg.sender].created;
+        for(uint96 i = currentIndex; i < _amount; i++){
             LibClone.cloneDeterministic(worker, bytes32(abi.encodePacked(msg.sender, i)));
             //workers[msg.sender].push(LibClone.clone(worker));
         }
+        userInfo[msg.sender].created = currentIndex + uint96(_amount);
     }
 
     // TODO Add tracking to this function as well
@@ -103,7 +105,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         unchecked {
             uint256 indexesLength = _workerIndexes.length;
             for (uint256 workerIndex; workerIndex < indexesLength; ++workerIndex) {
-                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, _workerIndexes[workerIndex])), address(this));
+                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, uint96(_workerIndexes[workerIndex]))), address(this));
                 for(uint256 callIndex; callIndex < _data[workerIndex].length; ++callIndex){
                     bytes memory data = abi.encodePacked(_data[workerIndex][callIndex], bytes20(_target));
 
@@ -123,7 +125,7 @@ contract Controller is Initializable, OwnableUpgradeable {
             uint256 indexesLength = _workerIndexes.length;
             for (uint256 workerIndex; workerIndex < indexesLength; ++workerIndex) {
                 bytes memory data = abi.encodePacked(_data[workerIndex], bytes20(_target));
-                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, _workerIndexes[workerIndex])), address(this));
+                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, uint96(_workerIndexes[workerIndex]))), address(this));
 
                 (bool success, ) = worker.call{value: _values[workerIndex]}(data);
 
@@ -137,7 +139,7 @@ contract Controller is Initializable, OwnableUpgradeable {
 
         unchecked {
             for (uint256 workerIndex; workerIndex < workerCount; ++workerIndex) {
-                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));
+                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, uint96(workerIndex))), address(this));
                 for(uint256 callIndex; callIndex < _data.length; ++callIndex) {
                     bytes memory data = abi.encodePacked(_data[callIndex], bytes20(_target));
 
@@ -219,6 +221,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         bytes memory data = abi.encodePacked(abi.encodeWithSignature("callEmpty(address)", withdrawTo), bytes20(address(ethSender)));
 
         for(uint256 i; i < _workerIndexes.length; i++){
+            console.log("withdrawing from", _workerIndexes[i]);
             LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, _workerIndexes[i])), address(this)).call(data);
         }
     }
@@ -231,9 +234,9 @@ contract Controller is Initializable, OwnableUpgradeable {
     function getWorkers(address _user) external view returns(address[] memory){
         bytes32 initCode = LibClone.initCodeHash(workerTemplate);
 
-        address[] memory workers;
-        for(uint256 i; i < userInfo[_user].created; ++i){
-            workers[i] = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, i)), address(this));
+        address[] memory workers = new address[](userInfo[_user].created);
+        for(uint96 i; i < userInfo[_user].created; i++){
+            workers[i] = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(_user, i)), address(this));
         }
 
         return workers;
