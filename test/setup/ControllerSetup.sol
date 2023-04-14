@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
 import "../../lib/forge-std/src/Test.sol";
 
@@ -26,7 +26,7 @@ contract ControllerSetup is Test{
         factory = new ERC1967Factory();
         // Deploy controller and set proxy admin
         controller_logic = address(new Controller());
-        controller = Controller(payable(factory.deploy(address(controller_logic), admin)));
+        controller = Controller(payable(factory.deploy(address(controller_logic), proxy_admin)));
         // Initialize the proxy (Ownable)
         controller.initialize();
 
