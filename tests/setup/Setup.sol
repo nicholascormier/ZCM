@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../lib/forge-std/src/Test.sol";
 
 import "../src/Controller.sol";
-import "../src/ProxyController.sol";
 import "../src/Worker.sol";
 import "../src/EthSender.sol";
 
@@ -13,8 +12,7 @@ import "../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpg
 import "../lib/foundry-upgrades/src/ProxyTester.sol";
 import "../lib/solady/src/utils/ERC1967Factory.sol";
 
-// TODO Rename this to something other than "Shared"
-abstract contract Shared is Test {
+abstract contract Setup is Test {
 
     address zenith_deployer = vm.addr(3902934);
     Worker worker_implementation;

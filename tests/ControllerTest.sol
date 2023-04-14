@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../lib/forge-std/src/Test.sol";
 
 import "../src/Controller.sol";
-import "../src/ProxyController.sol";
 import "../src/Worker.sol";
 import "../src/EthSender.sol";
 
@@ -20,7 +19,7 @@ import "../lib/foundry-upgrades/src/ProxyTester.sol";
 
 import "./Shared.sol";
 
-contract ControllerTest is Test, Shared {
+contract ControllerTest is Test, Setup {
 
     Mock721 NFT = new Mock721();
     Mock1155 NFT2 = new Mock1155();
