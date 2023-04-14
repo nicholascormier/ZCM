@@ -11,65 +11,46 @@ import "../src/EthSender.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "../lib/foundry-upgrades/src/ProxyTester.sol";
+import "../lib/solady/src/utils/ERC1967Factory.sol";
 
-// composable shared test setup
+// TODO Rename this to something other than "Shared"
 abstract contract Shared is Test {
 
     address zenith_deployer = vm.addr(3902934);
     Worker worker_implementation;
-    ProxyTester proxy = new ProxyTester();
 
-    address payable proxy_address;
-    address controller_logic;
-    address admin;
-    address ethSender;
+    address private controller_logic;
+    address admin = vm.addr(34234224);
+    Controller controller;
+    ERC1967Factory factory;
     address test_user = vm.addr(3493847394);
 
     address[] authorizedCallers = [test_user, vm.addr(398798350)];
 
     function _authorizeCallers() internal {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).authorizeCallers(authorizedCallers);
+        controller.authorizeCallers(authorizedCallers);
     }
 
     function _deauthorizeCallers() internal {
         vm.prank(zenith_deployer);
-        Controller(proxy_address).deauthorizeCallers(authorizedCallers);
+        controller.deauthorizeCallers(authorizedCallers);
     }
 
     // configures on-chain dependencies.
     function _devDeployBase() internal {
         vm.startPrank(zenith_deployer);
 
-        // Create the controller
-        Controller controller = new Controller();
-        controller_logic = address(controller);
+        factory = new ERC1967Factory();
+        controller_logic = address(new Controller());
+        controller = Controller(payable(factory.deploy(address(controller_logic), admin)));
+        // controller = new Controller();
+        controller.initialize();
 
-        // Set up ProxyAdmin and DelegateProxy
-        admin = address(new ProxyAdmin());
-        proxy_address = payable(address(new TransparentUpgradeableProxy(address(controller), admin, "")));
+        Worker worker = new Worker(address(controller));
+        controller.setWorkerTemplate(address(worker));
 
-        // Make sure the proxy is pointing to the controller
-        bytes32 implSlot = bytes32(
-            uint256(keccak256("eip1967.proxy.implementation")) - 1
-        );
-        bytes32 proxySlot = vm.load(proxy_address, implSlot);
-        address addr;
-        assembly {
-            mstore(0, proxySlot)
-            addr := mload(0)
-        }
-
-        assertEq(address(controller_logic), addr);
-
-        // Initialize the controller
-        Controller(proxy_address).initialize();
-
-        // Set up worker and controller
-        worker_implementation = new Worker{salt: ""}(proxy_address);
-        Controller(proxy_address).setWorkerTemplate(address(worker_implementation));
-        ethSender = address(new EthSender());
-        Controller(proxy_address).setEthSender(address(ethSender));
+        controller.authorizeCallers(authorizedCallers);
         vm.stopPrank();
     }
 

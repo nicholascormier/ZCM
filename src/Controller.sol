@@ -176,6 +176,7 @@ contract Controller is Initializable, OwnableUpgradeable {
         bytes32 initCode = LibClone.initCodeHash(workerLogic);
         
         unchecked {
+            // add first everything into the access list
             for (uint96 workerIndex; workerIndex < workerCount; ++workerIndex) {
                 if (allowance != 0 && minted >= allowance ) break;
                 address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));

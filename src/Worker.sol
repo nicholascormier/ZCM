@@ -40,15 +40,17 @@ contract Worker is Test {
         return 0xf23a6e61;
     }
 
-    // Also exists for testing but doesn't matter
+    // TODO Delete this
     function getBasicResponse() external view returns(address) {
         return address(this);
     }
 
+    // TODO Delete this
     function getBasicResponseProtected() external view onlyOwner returns(address) {
         return address(this);
     }
 
+    // TODO Delete this
     function empty(address toSend) external onlyOwner {
         toSend.call{value: address(this).balance}("");
     }
@@ -76,7 +78,7 @@ contract Worker is Test {
             calldatacopy(proxydata, 0, proxydatasize)
             cd := mload(proxydata)
 
-            pop(call(gas(), proxyaddress, callvalue(), proxydata, proxydatasize, 0, 0))
+            let success := call(gas(), proxyaddress, callvalue(), proxydata, proxydatasize, 0, 0)
         }
     }
 
