@@ -13,14 +13,19 @@ interface NFT {
 contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
 
     function setUp() external{
-        //_forkMainnet();
         _deployController();
+        
+        // Deploy controllers
+        vm.prank(test_user);
+        controller.createWorkers(300);
+
+        _forkMainnet();
     }
 
     // Comparing to Katana V2 Hayaoki mint (25 units - 1,998,743 gas)
     function test_hayaokiMint() external {
         // Set the stage for our mint
-        //vm.rollFork(16922864);
+        vm.rollFork(16922864);
 
         // Set up the mint state
         address nft = 0x3399B6e00b350b226AA18D3D552D750c326Ee475;
