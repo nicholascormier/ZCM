@@ -20,11 +20,7 @@ contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
         controller.createWorkers(300);
 
         _forkMainnet();
-    }
 
-    // Comparing to Katana V2 Hayaoki mint (25 units - 1,998,743 gas)
-    function test_hayaokiMint() external {
-        // Set the stage for our mint
         vm.rollFork(16922864);
 
         // Set up the mint state
@@ -36,10 +32,16 @@ contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
         nft.call(abi.encodeWithSignature("setSalePrice(uint256)", 3000000000000000));
         nft.call(abi.encodeWithSignature("setMaxTx(uint256)", 20));
         vm.stopPrank();
+    }
+
+    // Comparing to Katana V2 Hayaoki mint (25 units - 1,998,743 gas)
+    function test_hayaokiMint() external {
+        // Set the stage for our mint
+        vm.rollFork(16922864);
 
         // Execute our mint
         vm.prank(test_user);
-        controller.callWorkers(nft, abi.encodeWithSignature("publicMint(uint256)", 1), 0, 25, 0, true);
+        controller.callWorkers(0x3399B6e00b350b226AA18D3D552D750c326Ee475, abi.encodeWithSignature("publicMint(uint256)", 1), 0, 25, 0, true);
     }
 
 }
