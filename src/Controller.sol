@@ -153,35 +153,47 @@ contract Controller is Initializable, OwnableUpgradeable {
 
     function callWorkers(address _target, bytes calldata _data, uint256 _value, uint256 workerCount, uint256 _units, bool _stopOnFailure) external payable onlyAuthorized {
         bytes memory data = abi.encodePacked(_data, bytes20(_target));
-
-        bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
-
-        uint128 allowance = tracking[allowanceHash].allowance;
-        uint128 minted = tracking[allowanceHash].exhausted;
-
         bytes32 initCode = LibClone.initCodeHash(workerTemplate);
-        
-        unchecked {
-            // add first everything into the access list
-            for (uint96 workerIndex; workerIndex < workerCount; ++workerIndex) {
-                if (allowance != 0 && minted >= allowance ) break;
-                address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));
-                (bool success, ) = worker.call{value: _value}(data);
-                if(success == true) {
-                    if(_units != 0) {
-                        minted += uint128(_units);
+
+        if(_units != 0){
+            bytes8 allowanceHash = _calculateAllowanceHash(_target, msg.sender);
+
+            uint128 allowance = tracking[allowanceHash].allowance;
+            uint128 minted = tracking[allowanceHash].exhausted;
+            
+            unchecked {
+                // add first everything into the access list
+                for (uint96 workerIndex; workerIndex < workerCount; ++workerIndex) {
+                    if (allowance != 0 && minted >= allowance ) break;
+                    //address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));
+                    (bool success, ) = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this)).call{value: _value}(data);
+                    if(success == true) {
+                        if(_units != 0) {
+                            minted += uint128(_units);
+                        }
+                    }else if(_stopOnFailure){
+                        break;
                     }
-                }else if(_stopOnFailure){
-                    break;
                 }
             }
-        }
 
-        if (_units != 0 && allowance != 0) {
-            tracking[allowanceHash] = TrackingInfo({
-                allowance: allowance,
-                exhausted: minted
-            });
+            if (_units != 0 && allowance != 0) {
+                tracking[allowanceHash] = TrackingInfo({
+                    allowance: allowance,
+                    exhausted: minted
+                });
+            }
+        }else{
+            unchecked {
+                // add first everything into the access list
+                for (uint96 workerIndex; workerIndex < workerCount; ++workerIndex) {
+                    address worker = LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, workerIndex)), address(this));
+                    (bool success, ) = worker.call{value: _value}(data);
+                    if(success == false && _stopOnFailure) {
+                        break;
+                    }
+                }
+            }
         }
     }
 
