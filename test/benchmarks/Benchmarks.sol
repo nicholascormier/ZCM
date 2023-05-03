@@ -32,6 +32,10 @@ contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
         nft.call(abi.encodeWithSignature("setSalePrice(uint256)", 3000000000000000));
         nft.call(abi.encodeWithSignature("setMaxTx(uint256)", 20));
         vm.stopPrank();
+
+        // Execute our mint
+        vm.prank(test_user);
+        controller.callWorkers(0x3399B6e00b350b226AA18D3D552D750c326Ee475, abi.encodeWithSignature("publicMint(uint256)", 1), 0, 25, 0, true);
     }
 
     // Comparing to Katana V2 Hayaoki mint (25 units - 1,998,743 gas)
@@ -42,6 +46,28 @@ contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
         // Execute our mint
         vm.prank(test_user);
         controller.callWorkers(0x3399B6e00b350b226AA18D3D552D750c326Ee475, abi.encodeWithSignature("publicMint(uint256)", 1), 0, 25, 0, true);
+    }
+
+    // Comparing to Katana V2 Hayaoki withdrawal (25 units - 329,331 gas)
+    function test_hayaokiWithdraw() external {
+        // Set the stage for our mint
+        vm.rollFork(16922864);
+
+        bytes[] memory cd = new bytes[](25);
+        uint256[] memory values = new uint256[](25);
+        uint256[] memory workerIndexes = new uint256[](25);
+
+        address[] memory workers = controller.getWorkers(test_user);
+
+        for(uint256 i = 1; i <= 25; i++){
+            cd[i-1] = abi.encodeWithSignature("transferFrom(address,address,uint256)", workers[i-1], test_user, i);
+            values[i-1] = 0;
+            workerIndexes[i-1] = i-1;
+        }
+
+        // Execute our mint
+        vm.prank(test_user);
+        controller.callWorkersCustom(0x3399B6e00b350b226AA18D3D552D750c326Ee475, cd, values, workerIndexes, true);
     }
 
 }
