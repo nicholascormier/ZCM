@@ -10,7 +10,7 @@ interface NFT {
     function ownerOf(uint256) external returns(address);
 }
 
-contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
+contract LocalBenchmarks is Test, Setup, ControllerSetup {
 
     function setUp() external{
         _deployController();
@@ -18,8 +18,6 @@ contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
         // Deploy controllers
         vm.prank(test_user);
         controller.createWorkers(300);
-
-        _forkMainnet();
 
         vm.rollFork(16922864);
 
@@ -41,7 +39,7 @@ contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
     }
 
     // Comparing to Katana V2 Hayaoki mint (25 units - 1,998,743 gas)
-    function DISABLEDtest_hayaokiMint() external {
+    function test_hayaokiMint() external {
         // Set the stage for our mint
         vm.rollFork(16922864);
 
@@ -51,7 +49,7 @@ contract Benchmarks is Test, Setup, ControllerSetup, BenchmarkSetup {
     }
 
     // Comparing to Katana V2 Hayaoki withdrawal (25 units - 329,331 gas)
-    function DISABLEDtest_hayaokiWithdraw() external {
+    function test_hayaokiWithdraw() external {
         // Set the stage for our mint
         vm.rollFork(16922864);
 
