@@ -95,3 +95,32 @@ contract Deploy is Script {
     }
 
 }
+
+contract DeployNoSalt is Script {
+    function run() public {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
+
+        // First, deploy the ProxyAdmin
+        ProxyAdmin proxy_admin = new ProxyAdmin();
+        // Then, the controller logic
+        Controller controller_logic = new Controller();
+        // Finally, the upgradeable proxy
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(controller_logic), address(proxy_admin), "");
+
+        address payable controller_proxy_address = payable(address(proxy));
+        address controller_logic_address = address(controller_logic);
+
+        Controller(controller_proxy_address).initialize();
+        Worker worker_logic = new Worker(controller_proxy_address);
+        address worker_logic_address = address(worker_logic);
+        Controller(controller_proxy_address).setWorkerTemplate(worker_logic_address);
+
+        console.log("Proxy admin:", address(proxy_admin));
+        console.log("Proxy address:", address(proxy));
+        console.log("Controller logic address:", address(controller_logic));
+        console.log("Worker address:", address(worker_logic));
+
+        vm.stopBroadcast();
+    }
+}

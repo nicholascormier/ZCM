@@ -233,7 +233,6 @@ contract Controller is Initializable, OwnableUpgradeable {
         bytes memory data = abi.encodePacked(abi.encodeWithSignature("callEmpty(address)", withdrawTo), bytes20(address(ethSender)));
 
         for(uint256 i; i < _workerIndexes.length; i++){
-            console.log("withdrawing from", _workerIndexes[i]);
             LibClone.predictDeterministicAddress(initCode, bytes32(abi.encodePacked(msg.sender, _workerIndexes[i])), address(this)).call(data);
         }
     }

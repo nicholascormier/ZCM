@@ -42,7 +42,7 @@ contract Benchmarks is Test {
 
         controller.authorizeCallers(authorizedCallers);
 
-        //controller.createWorkers(300);
+        controller.createWorkers(300);
         vm.stopPrank();
         
         nft = 0x3399B6e00b350b226AA18D3D552D750c326Ee475;
@@ -65,11 +65,6 @@ contract Benchmarks is Test {
         vm.prank(test_user);
         controller.callWorkers(nft, abi.encodeWithSignature("publicMint(uint256)", 1), 0, 25, 0, true);
         //NFTMint(0x3399B6e00b350b226AA18D3D552D750c326Ee475).publicMint(1);
-    }
-
-    function testCreations() external {
-        vm.prank(test_user);
-        controller.createWorkers(25);
     }
 
 }

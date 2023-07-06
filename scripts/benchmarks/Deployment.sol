@@ -18,14 +18,14 @@ contract Deployment is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         
         // Controller instance deployed
-        Controller controller = Controller(payable(0x4A3e0026cFA294AAfC0000004cAC99330083aB8d));
+        Controller controller = Controller(payable(0x7e757c5A2715E00b7C14b8Ddf6945346C8D6884B));
 
         callers = [vm.addr(vm.envUint("PRIVATE_KEY"))];
         
         // Start broadcasting our transactions
         vm.startBroadcast(deployerPrivateKey);
 
-        controller.createWorkers(50);
+        controller.createWorkers(100);
 
         vm.stopBroadcast();
     }
