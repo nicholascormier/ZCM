@@ -17,11 +17,12 @@ contract ProxyTests is Test, Setup, ControllerSetup{
     // First, upgrade controller via factory. Then make sure stored implementation in proxy contract matches new deployment
     function test_upgradeController() public {
         // Create new controller
+        vm.prank(controller_deployer);
         Controller new_controller = new Controller();
 
         // Perform the upgrade
-        vm.prank(proxy_admin);
-        factory.upgrade(address(controller), address(new_controller));
+        vm.prank(controller_deployer);
+        proxy_admin.upgrade(TransparentUpgradeableProxy(payable(controller)), address(new_controller));
         
         // Make sure implementation slot updated
         bytes32 implSlot = bytes32(

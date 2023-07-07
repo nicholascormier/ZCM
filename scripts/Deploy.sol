@@ -108,13 +108,13 @@ contract DeployNoSalt is Script {
         // Finally, the upgradeable proxy
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(controller_logic), address(proxy_admin), "");
 
-        address payable controller_proxy_address = payable(address(proxy));
-        address controller_logic_address = address(controller_logic);
+        // Define the Controller
+        Controller controller = Controller(payable(proxy));
+        controller.initialize();
 
-        Controller(controller_proxy_address).initialize();
-        Worker worker_logic = new Worker(controller_proxy_address);
-        address worker_logic_address = address(worker_logic);
-        Controller(controller_proxy_address).setWorkerTemplate(worker_logic_address);
+        // Create the worker logic
+        Worker worker_logic = new Worker(payable(controller));
+        controller.setWorkerTemplate(address(worker_logic));
 
         console.log("Proxy admin:", address(proxy_admin));
         console.log("Proxy address:", address(proxy));

@@ -31,15 +31,19 @@ contract CreationTests is Test, Setup, ControllerSetup, AuthorizationSetup{
         controller.authorizeCallers(callers);
 
         controller.createWorkers(25);
-        assertTrue(controller.getWorkers(authorized_user).length == 25);
+        console.log("1 Worker Count", controller.getWorkers(controller_deployer).length);
+        assertTrue(controller.getWorkers(controller_deployer).length == 25);
 
         controller.createWorkers(50);
-        assertTrue(controller.getWorkers(authorized_user).length == 75);
+        console.log("2 Worker Count", controller.getWorkers(controller_deployer).length);
+        assertTrue(controller.getWorkers(controller_deployer).length == 75);
 
         controller.createWorkers(100);
-        assertTrue(controller.getWorkers(authorized_user).length == 175);
+        console.log("3 Worker Count", controller.getWorkers(controller_deployer).length);
+        assertTrue(controller.getWorkers(controller_deployer).length == 175);
         
         controller.createWorkers(200);
-        assertTrue(controller.getWorkers(authorized_user).length == 375);
+        console.log("4 Worker Count", controller.getWorkers(controller_deployer).length);
+        assertTrue(controller.getWorkers(controller_deployer).length == 375);
     }
 }

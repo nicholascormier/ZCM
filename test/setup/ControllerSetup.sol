@@ -3,18 +3,19 @@ pragma solidity ^0.8.19;
 
 import "../../lib/forge-std/src/Test.sol";
 
+import "../../lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import "../../lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
 import "../../src/Controller.sol";
 import "../../src/Worker.sol";
-import "../../lib/solady/src/utils/ERC1967Factory.sol";
 
 contract ControllerSetup is Test{
 
     // Exportable reference variables
-    ERC1967Factory factory;
+    ProxyAdmin proxy_admin;
     Controller controller;
-    address controller_logic;
-    address proxy_admin = vm.addr(3);
-    address controller_deployer = vm.addr(2);
+    Controller controller_logic;
+    address controller_deployer = vm.addr(vm.envUint("PRIVATE_KEY"));
 
     address private test_user = vm.addr(4);
     address[] private authorized_users = [test_user];
@@ -22,11 +23,15 @@ contract ControllerSetup is Test{
     function _deployController() internal {
         // Change testing address
         vm.startPrank(controller_deployer);
-        // Create factory
-        factory = new ERC1967Factory();
-        // Deploy controller and set proxy admin
-        controller_logic = address(new Controller());
-        controller = Controller(payable(factory.deploy(address(controller_logic), proxy_admin)));
+
+         // First, deploy the ProxyAdmin
+        proxy_admin = new ProxyAdmin();
+        // Then, the controller logic
+        controller_logic = new Controller();
+        // Finally, the upgradeable proxy
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(controller_logic), address(proxy_admin), "");
+
+        controller = Controller(payable(proxy));
         // Initialize the proxy (Ownable)
         controller.initialize();
         vm.stopPrank();
