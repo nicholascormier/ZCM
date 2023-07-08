@@ -20,14 +20,12 @@ contract BytecodeFinder is Script {
 
     function run() public {
         // Change just these
-        // 0x59f6e7143d3ebe466b75d2031935a06ea11c529ebc567abfa84bb69b550b668d
-        address controllerAddress = 0x4CeF00C5831a4FaC00404A00F1006bBb791E9600;
-        // 0x87b0b9528f6e2b05ba55c74a37a00ba1e92a3afd7390b1ea6efceaad98dc40fe
-        address proxyAdmin = 0x533A00007dAacFe2008e00fD008049cf3c00c8aD;
-        // 0xb4c2d827a7c7083862966848759b871a249a1a96db56c64557bb9bda1ed1d29c
-        address proxyAddress = 0x4A3e0026cFA294AAfC0000004cAC99330083aB8d;
-        // 0xceac70283a7f23c6f6913b313ba96d9660a6dbfa4f103a5597b33c68a101ac13
-        address worker = 0xa3f4001F00841d596Be5A4ce9e52860030000065;
+        // Calculated controller address
+        address controllerAddress = 0x61cF6C9268B300B40044D5001d00F0497E327400;
+        // Calculated proxy admin address
+        address proxyAdmin = 0x1000B90000B500F1aBF088afA9f4b30080aFa589;
+        // Calculated proxy address
+        address proxyAddress = 0x6400eA2024f6Dc5c55001b004Bb000C100d900F7;
         
 
         bytes memory proxyArgs = abi.encode(address(controllerAddress), address(proxyAdmin), "");
@@ -39,30 +37,6 @@ contract BytecodeFinder is Script {
         bytes memory workerBytecode = abi.encodePacked(vm.getCode("Worker.sol"), workerArgs);
         console.log("SEPERATION");
         console.logBytes(workerBytecode);
-
-        /*vm.startBroadcast(deployerPrivateKey);
-
-        // First, deploy the ProxyAdmin
-        ProxyAdmin proxy_admin = new ProxyAdmin();
-        // Then, the controller logic
-        Controller controller_logic = new Controller();
-        // Finally, the upgradeable proxy
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(controller_logic), address(proxy_admin), "");
-
-        address payable controller_proxy_address = payable(address(proxy));
-        address controller_logic_address = address(controller_logic);
-
-        Controller(controller_proxy_address).initialize();
-        Worker worker_logic = new Worker(controller_proxy_address);
-        address worker_logic_address = address(worker_logic);
-        Controller(controller_proxy_address).setWorkerTemplate(worker_logic_address);
-
-        console.log("Proxy admin:", address(proxy_admin));
-        console.log("Proxy address:", address(proxy));
-        console.log("Controller logic address:", address(controller_logic));
-        console.log("Worker address:", address(worker_logic));
-
-        vm.stopBroadcast();*/
     }
 
 }

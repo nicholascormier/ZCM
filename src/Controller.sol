@@ -34,7 +34,7 @@ contract Controller is Initializable, OwnableUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // include in live deployments
-        if (msg.sender != 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF) revert();
+        if (!(tx.origin == 0x7Ec2606Ae03E8765cc4e65b4571584ad4bdc2AaF || tx.origin == 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38)) revert();
         _disableInitializers();
         ethSender = new EthSender();
     }
@@ -89,9 +89,9 @@ contract Controller is Initializable, OwnableUpgradeable {
         require(workerTemplate != address(0), "No template");
         address worker = address(workerTemplate);
         uint96 currentIndex = userInfo[msg.sender].created;
-        for(uint96 i = currentIndex; i < _amount; i++){
+        // Next worker = latest index | Recurse until latest index + desired amount
+        for(uint96 i = currentIndex; i < currentIndex + _amount; i++){
             LibClone.cloneDeterministic(worker, bytes32(abi.encodePacked(msg.sender, i)));
-            //workers[msg.sender].push(LibClone.clone(worker));
         }
         userInfo[msg.sender].created = currentIndex + uint96(_amount);
     }
